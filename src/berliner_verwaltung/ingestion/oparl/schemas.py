@@ -1,14 +1,16 @@
-"""Pydantic models for OParl 1.1 entities.
+"""Pydantic models for OParl 1.0 entities (Berlin sitzungsdienst).
 
 Validates API responses and provides typed access to OParl data.
-Field names follow the OParl 1.1 specification exactly.
+Field names follow the OParl 1.0 specification exactly.
+The API returns empty strings for missing values — the base validator coerces them to None.
 """
 
 from __future__ import annotations
 
 import datetime as dt
+from typing import Any
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, model_validator
 
 
 class OparlBase(BaseModel, extra="allow"):
@@ -18,6 +20,13 @@ class OparlBase(BaseModel, extra="allow"):
     modified: dt.datetime | None = None
     deleted: bool = False
     keyword: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def empty_strings_to_none(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return {k: (None if v == "" else v) for k, v in data.items()}
+        return data
     web: HttpUrl | None = None
 
 

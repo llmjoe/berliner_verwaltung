@@ -16,9 +16,7 @@ class Settings(BaseSettings):
     )
 
     oparl_base_url: str = (
-        "https://www.berlin.de/ba-friedrichshain-kreuzberg"
-        "/politik-und-verwaltung/bezirksverordnetenversammlung"
-        "/online/oparl/v1.1"
+        "https://www.sitzungsdienst-friedrichshain-kreuzberg.de/oi/oparl/1.0/system.asp"
     )
 
     anthropic_api_key: str = ""

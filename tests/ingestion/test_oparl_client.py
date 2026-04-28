@@ -25,22 +25,43 @@ def _mock_transport(responses: dict[str, Any]) -> httpx.MockTransport:
 
 
 @pytest.fixture
+def mock_system_response() -> dict[str, Any]:
+    return {
+        "id": "https://example.org/oparl/1.0/system",
+        "type": "https://schema.oparl.org/1.0/System",
+        "name": "BVV Friedrichshain-Kreuzberg",
+        "body": "https://example.org/oparl/1.0/bodies",
+    }
+
+
+@pytest.fixture
 def mock_body_response() -> dict[str, Any]:
     return {
-        "id": "https://example.org/oparl/v1.1/body/1",
-        "type": "https://schema.oparl.org/1.1/Body",
-        "name": "BVV Friedrichshain-Kreuzberg",
-        "organization": "https://example.org/oparl/v1.1/body/1/organization",
-        "person": "https://example.org/oparl/v1.1/body/1/person",
-        "meeting": "https://example.org/oparl/v1.1/body/1/meeting",
-        "paper": "https://example.org/oparl/v1.1/body/1/paper",
+        "data": [
+            {
+                "id": "https://example.org/oparl/1.0/body/22",
+                "type": "https://schema.oparl.org/1.0/Body",
+                "name": "BVV Friedrichshain-Kreuzberg",
+                "organization": "https://example.org/oparl/1.0/organizations",
+                "person": "https://example.org/oparl/1.0/persons",
+                "meeting": "https://example.org/oparl/1.0/meetings",
+                "paper": "https://example.org/oparl/1.0/papers",
+            }
+        ],
+        "links": {},
+        "pagination": {},
     }
 
 
 @pytest.mark.asyncio
-async def test_get_body(mock_body_response: dict[str, Any]) -> None:
-    transport = _mock_transport({"v1.1": mock_body_response})
-    client = OparlClient(base_url="https://example.org/oparl/v1.1")
+async def test_get_body(
+    mock_system_response: dict[str, Any], mock_body_response: dict[str, Any]
+) -> None:
+    transport = _mock_transport({
+        "system": mock_system_response,
+        "bodies": mock_body_response,
+    })
+    client = OparlClient(base_url="https://example.org/oparl/1.0/system")
     client._client = httpx.AsyncClient(transport=transport)
 
     body = await client.get_body()

@@ -1,4 +1,4 @@
-"""Async HTTP client for OParl 1.1 APIs with pagination and retry."""
+"""Async HTTP client for OParl 1.0 APIs (Berlin sitzungsdienst) with pagination and retry."""
 
 from __future__ import annotations
 
@@ -18,16 +18,22 @@ from berliner_verwaltung.config import settings
 
 logger = logging.getLogger(__name__)
 
+USER_AGENT = (
+    "BerlinerVerwaltungsdaten/0.1 "
+    "(+https://github.com/llmjoe/berliner_verwaltung; "
+    "Mozilla/5.0 compatible)"
+)
+
 OPARL_TYPE_MAP = {
-    "https://schema.oparl.org/1.1/Body": "body",
-    "https://schema.oparl.org/1.1/Organization": "organization",
-    "https://schema.oparl.org/1.1/Person": "person",
-    "https://schema.oparl.org/1.1/Membership": "membership",
-    "https://schema.oparl.org/1.1/Meeting": "meeting",
-    "https://schema.oparl.org/1.1/AgendaItem": "agendaItem",
-    "https://schema.oparl.org/1.1/Paper": "paper",
-    "https://schema.oparl.org/1.1/File": "file",
-    "https://schema.oparl.org/1.1/Consultation": "consultation",
+    "https://schema.oparl.org/1.0/Body": "body",
+    "https://schema.oparl.org/1.0/Organization": "organization",
+    "https://schema.oparl.org/1.0/Person": "person",
+    "https://schema.oparl.org/1.0/Membership": "membership",
+    "https://schema.oparl.org/1.0/Meeting": "meeting",
+    "https://schema.oparl.org/1.0/AgendaItem": "agendaItem",
+    "https://schema.oparl.org/1.0/Paper": "paper",
+    "https://schema.oparl.org/1.0/File": "file",
+    "https://schema.oparl.org/1.0/Consultation": "consultation",
 }
 
 
@@ -36,7 +42,10 @@ class OparlClient:
         self.base_url = (base_url or settings.oparl_base_url).rstrip("/")
         self._client = httpx.AsyncClient(
             timeout=timeout,
-            headers={"Accept": "application/json"},
+            headers={
+                "Accept": "application/json",
+                "User-Agent": USER_AGENT,
+            },
             follow_redirects=True,
         )
 
@@ -60,16 +69,27 @@ class OparlClient:
         response.raise_for_status()
         return response.json()
 
+    async def get_system(self) -> dict[str, Any]:
+        """Fetch the OParl System object (entry point)."""
+        return await self._get(self.base_url)
+
     async def get_body(self) -> dict[str, Any]:
-        data = await self._get(self.base_url)
-        bodies = data.get("data", [data]) if "data" in data else [data]
+        """Fetch the first Body from the system's body list."""
+        system = await self.get_system()
+        body_list_url = system.get("body")
+        if not body_list_url:
+            raise ValueError("System object has no 'body' URL")
+        data = await self._get(body_list_url)
+        bodies = data.get("data", [])
         if not bodies:
-            raise ValueError("No body found at OParl endpoint")
+            raise ValueError("No bodies found at body list URL")
         return bodies[0]
 
     async def paginate(self, url: str) -> AsyncGenerator[dict[str, Any], None]:
         current_url: str | None = url
+        page = 0
         while current_url:
+            page += 1
             data = await self._get(current_url)
 
             items = data.get("data", [])
@@ -81,7 +101,7 @@ class OparlClient:
             current_url = links.get("next") or pagination.get("next")
 
             if current_url:
-                logger.debug("Next page: %s", current_url)
+                logger.debug("Page %d done, next: %s", page, current_url)
 
     async def get_all_of_type(self, list_url: str) -> AsyncGenerator[dict[str, Any], None]:
         async for item in self.paginate(list_url):
