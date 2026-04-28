@@ -38,3 +38,5 @@ logs/
 *.log
 
 .prefect/
+
+.claude/settings.local.json

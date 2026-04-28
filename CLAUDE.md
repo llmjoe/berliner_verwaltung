@@ -30,17 +30,33 @@ Stark automatisierte, LLM-getriebene Pipeline-Architektur: Datenerhebung, Aufber
 # Dev-Installation
 uv pip install -e ".[all]"
 
+# DB starten (Docker)
+sudo docker compose up -d
+
+# Migrationen
+alembic upgrade head
+alembic revision --autogenerate -m "beschreibung"
+
+# OParl-Crawl
+bv crawl-oparl
+
 # Tests
 pytest
 
 # Linting
 ruff check src/ tests/
 mypy src/
-
-# Migrationen
-alembic upgrade head
-alembic revision --autogenerate -m "beschreibung"
 ```
+
+## Datenquellen-Details
+
+OParl 1.0 API fuer alle Berliner Bezirke (11 von 12, Spandau fehlt):
+- URL-Schema: `https://www.sitzungsdienst-{bezirk}.de/oi/oparl/1.0/system.asp`
+- Aktuell konfiguriert: Friedrichshain-Kreuzberg (body_id=22)
+- Erfordert User-Agent Header (wird vom Client gesetzt)
+- API liefert teils invalides JSON (Steuerzeichen) und leere Strings statt null
+- Pagination: 20 Elemente pro Seite, `links.next` fuer naechste Seite
+- Daten zurueck bis ~2001 (II. Wahlperiode)
 
 ## Pipeline-Stufen
 
