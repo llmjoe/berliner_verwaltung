@@ -89,7 +89,7 @@ class OparlAgendaItem(OparlBase):
     number: str | None = None
     name: str | None = None
     public: bool | None = None
-    consultation: dict | None = None
+    consultation: HttpUrl | dict | None = None
     result: str | None = None
     resolution_text: str | None = Field(None, alias="resolutionText")
     resolution_file: dict | None = Field(None, alias="resolutionFile")

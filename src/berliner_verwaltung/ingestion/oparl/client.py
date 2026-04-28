@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import re
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -67,7 +69,11 @@ class OparlClient:
         logger.debug("GET %s", url)
         response = await self._client.get(url)
         response.raise_for_status()
-        return response.json()
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            cleaned = re.sub(r"[\x00-\x1f\x7f](?<![\n\r\t])", "", response.text)
+            return json.loads(cleaned)
 
     async def get_system(self) -> dict[str, Any]:
         """Fetch the OParl System object (entry point)."""

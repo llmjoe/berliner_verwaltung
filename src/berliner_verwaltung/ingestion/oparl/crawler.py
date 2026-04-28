@@ -53,7 +53,7 @@ class OparlCrawler:
     def __init__(self, client: OparlClient, session: AsyncSession) -> None:
         self.client = client
         self.session = session
-        self.stats = {"fetched": 0, "new": 0, "updated": 0, "unchanged": 0}
+        self.stats = {"fetched": 0, "new": 0, "updated": 0, "unchanged": 0, "errors": 0}
 
     async def _upsert_raw(self, oparl_id: str, oparl_type: str, data: dict[str, Any]) -> bool:
         """Store raw JSON. Returns True if the object is new or changed."""
@@ -317,7 +317,13 @@ class OparlCrawler:
 
                     changed = await self._upsert_raw(oparl_id, oparl_type, item)
                     if changed:
-                        await normalizer(item, body.id)
+                        try:
+                            await normalizer(item, body.id)
+                        except Exception as e:
+                            self.stats["errors"] += 1
+                            logger.warning(
+                                "Failed to normalize %s %s: %s", entity_name, oparl_id, e
+                            )
 
                     if self.stats["fetched"] % 100 == 0:
                         await self.session.flush()
@@ -333,11 +339,12 @@ class OparlCrawler:
             await self.session.commit()
 
             logger.info(
-                "Crawl completed: %d fetched, %d new, %d updated, %d unchanged",
+                "Crawl completed: %d fetched, %d new, %d updated, %d unchanged, %d errors",
                 self.stats["fetched"],
                 self.stats["new"],
                 self.stats["updated"],
                 self.stats["unchanged"],
+                self.stats["errors"],
             )
 
         except Exception:
