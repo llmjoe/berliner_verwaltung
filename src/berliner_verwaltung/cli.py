@@ -34,6 +34,64 @@ async def cmd_crawl_oparl(args: argparse.Namespace) -> None:
             )
 
 
+async def cmd_download_pdfs(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.ingestion.pdf.downloader import PdfDownloader
+
+    async with async_session_factory() as session:
+        async with PdfDownloader(session) as downloader:
+            stats = await downloader.download_batch(limit=args.limit)
+            print(
+                f"Download: {stats['downloaded']} new, "
+                f"{stats['skipped']} skipped, "
+                f"{stats['errors']} errors"
+            )
+
+
+async def cmd_extract_text(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.ingestion.pdf.extractor import PdfExtractor
+
+    async with async_session_factory() as session:
+        extractor = PdfExtractor(session)
+        stats = await extractor.extract_batch(limit=args.limit)
+        await session.commit()
+        print(
+            f"Extraction: {stats['extracted']} extracted, "
+            f"{stats['empty']} empty, "
+            f"{stats['needs_ocr']} need OCR, "
+            f"{stats['errors']} errors"
+        )
+
+
+async def cmd_index_search(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.ingestion.pdf.indexer import SearchIndexer
+
+    async with async_session_factory() as session:
+        indexer = SearchIndexer(session)
+        stats = await indexer.index_all(limit=args.limit)
+        await session.commit()
+        print(f"Indexed: {stats['indexed']} papers, {stats['skipped']} skipped")
+
+
+async def cmd_search(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.ingestion.pdf.indexer import SearchIndexer
+
+    async with async_session_factory() as session:
+        indexer = SearchIndexer(session)
+        results = await indexer.search(args.query, limit=args.limit)
+        if not results:
+            print("Keine Ergebnisse.")
+            return
+        for r in results:
+            print(f"[{r['reference']}] {r['name']} ({r['paper_type']}, {r['date']})")
+            if r["headline"]:
+                print(f"  {r['headline']}")
+            print()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="bv",
@@ -44,11 +102,32 @@ def main() -> None:
 
     subparsers.add_parser("crawl-oparl", help="Crawl OParl FHK endpoint")
 
+    dl_parser = subparsers.add_parser("download-pdfs", help="Download PDF files from OParl")
+    dl_parser.add_argument("-n", "--limit", type=int, default=100)
+
+    ex_parser = subparsers.add_parser("extract-text", help="Extract text from downloaded PDFs")
+    ex_parser.add_argument("-n", "--limit", type=int, default=100)
+
+    ix_parser = subparsers.add_parser("index-search", help="Build full-text search index")
+    ix_parser.add_argument("-n", "--limit", type=int, default=500)
+
+    search_parser = subparsers.add_parser("search", help="Search papers by text")
+    search_parser.add_argument("query", help="Search query (German)")
+    search_parser.add_argument("-n", "--limit", type=int, default=20)
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
-    if args.command == "crawl-oparl":
-        asyncio.run(cmd_crawl_oparl(args))
+    commands = {
+        "crawl-oparl": cmd_crawl_oparl,
+        "download-pdfs": cmd_download_pdfs,
+        "extract-text": cmd_extract_text,
+        "index-search": cmd_index_search,
+        "search": cmd_search,
+    }
+
+    if args.command in commands:
+        asyncio.run(commands[args.command](args))
     else:
         parser.print_help()
         sys.exit(1)
