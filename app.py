@@ -208,8 +208,8 @@ with st.sidebar:
     st.metric("Organisationen", f"{stats['Organisationen']:,}")
 
 # Tabs
-tab_search, tab_budget, tab_meetings = st.tabs([
-    "Drucksachen-Suche", "Haushalt", "Letzte Sitzungen"
+tab_search, tab_budget, tab_analysis, tab_meetings = st.tabs([
+    "Drucksachen-Suche", "Haushalt", "Analyse", "Letzte Sitzungen",
 ])
 
 with tab_search:
@@ -300,6 +300,70 @@ with tab_budget:
             )
     else:
         st.info("Noch keine Haushaltsdaten geladen. Starte: bv load-budgets")
+
+with tab_analysis:
+    st.subheader("Themen-Verteilung (VI. Wahlperiode)")
+
+    from berliner_verwaltung.analysis.anomalies import detect_budget_anomalies
+    from berliner_verwaltung.analysis.budget_trends import analyze_budget_trends
+    from berliner_verwaltung.analysis.topic_trends import analyze_topic_trends
+
+    async def _run_analysis():  # type: ignore[no-redef]
+        async with async_session_factory() as s:
+            t = await analyze_topic_trends(s)
+            b = await analyze_budget_trends(s)
+            a = await detect_budget_anomalies(s)
+            return t, b, a
+
+    topics, budget, anomalies = run_async(_run_analysis())
+
+    # Topic chart
+    if topics and topics.topic_trends:
+        import pandas as pd
+        topic_df = pd.DataFrame([
+            {"Thema": t.code, "Anzahl": t.total, "Trend": t.trend,
+             "Anteil": f"{t.recent_share:.1%}"}
+            for t in topics.topic_trends
+        ])
+        st.bar_chart(topic_df.set_index("Thema")["Anzahl"])
+        st.dataframe(topic_df, use_container_width=True, hide_index=True)
+
+        if topics.top_cooccurrences:
+            st.subheader("Haeufige Themen-Kombinationen")
+            cooc_df = pd.DataFrame([
+                {"Thema A": c.topic_a, "Thema B": c.topic_b, "Anzahl": c.count}
+                for c in topics.top_cooccurrences[:10]
+            ])
+            st.dataframe(cooc_df, use_container_width=True, hide_index=True)
+
+    # Budget anomalies
+    if anomalies:
+        st.subheader("Haushalts-Anomalien")
+        st.caption("Budgetposten mit statistisch auffaelliger Veraenderung (z-Score)")
+        import pandas as pd
+        anom_df = pd.DataFrame([
+            {
+                "Schwere": a.severity,
+                "z-Score": f"{a.z_score:+.1f}",
+                "Beschreibung": a.description[:80],
+            }
+            for a in anomalies[:15]
+        ])
+        st.dataframe(anom_df, use_container_width=True, hide_index=True)
+
+    # Kapitel trends
+    if budget and budget.kapitel_trends:
+        st.subheader("Kapitel-Trends (inflationsbereinigt)")
+        import pandas as pd
+        kap_df = pd.DataFrame([
+            {
+                "Kapitel": t.kapitel,
+                "Veraenderung (real)": f"{t.change_real_pct:+.1f}%",
+                "real_pct": t.change_real_pct,
+            }
+            for t in budget.kapitel_trends
+        ])
+        st.bar_chart(kap_df.set_index("Kapitel")["real_pct"])
 
 with tab_meetings:
     meetings = run_async(get_recent_meetings(20))
