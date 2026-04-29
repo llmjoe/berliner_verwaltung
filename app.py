@@ -17,6 +17,8 @@ from berliner_verwaltung.db.models import (
     Meeting,
     Organization,
     Paper,
+    PardokDokument,
+    PardokVorgang,
     Person,
 )
 
@@ -158,6 +160,53 @@ async def get_kapitel_list(plan_id: int) -> list[str]:
         return [row[0] for row in result.all()]
 
 
+async def get_pardok_fhk(limit: int = 50) -> list[dict]:
+    async with async_session_factory() as session:
+        result = await session.execute(
+            select(PardokDokument, PardokVorgang.systematik_label)
+            .join(PardokVorgang, PardokDokument.vorgang_id == PardokVorgang.id)
+            .where(PardokVorgang.is_fhk.is_(True))
+            .where(PardokDokument.titel.isnot(None))
+            .order_by(PardokDokument.datum.desc().nullslast())
+            .limit(limit)
+        )
+        return [
+            {
+                "dok_nr": r[0].dok_nr,
+                "titel": r[0].titel,
+                "dok_typ": r[0].dok_typ,
+                "datum": str(r[0].datum) if r[0].datum else None,
+                "urheber": r[0].urheber,
+                "systematik": r[1],
+                "pdf_url": r[0].pdf_url,
+            }
+            for r in result.all()
+        ]
+
+
+async def search_pardok(query: str, limit: int = 30) -> list[dict]:
+    async with async_session_factory() as session:
+        result = await session.execute(
+            select(PardokDokument, PardokVorgang.systematik_label)
+            .join(PardokVorgang, PardokDokument.vorgang_id == PardokVorgang.id)
+            .where(PardokDokument.titel.ilike(f"%{query}%"))
+            .order_by(PardokDokument.datum.desc().nullslast())
+            .limit(limit)
+        )
+        return [
+            {
+                "dok_nr": r[0].dok_nr,
+                "titel": r[0].titel,
+                "dok_typ": r[0].dok_typ,
+                "datum": str(r[0].datum) if r[0].datum else None,
+                "urheber": r[0].urheber,
+                "systematik": r[1],
+                "pdf_url": r[0].pdf_url,
+            }
+            for r in result.all()
+        ]
+
+
 async def get_recent_meetings(limit: int = 10) -> list[dict]:
     async with async_session_factory() as session:
         result = await session.execute(
@@ -208,22 +257,49 @@ with st.sidebar:
     st.metric("Organisationen", f"{stats['Organisationen']:,}")
 
 # Tabs
-tab_search, tab_budget, tab_analysis, tab_meetings = st.tabs([
-    "Drucksachen-Suche", "Haushalt", "Analyse", "Letzte Sitzungen",
+tab_search, tab_budget, tab_pardok, tab_analysis, tab_meetings = st.tabs([
+    "Drucksachen-Suche", "Haushalt", "Abgeordnetenhaus", "Analyse",
+    "Letzte Sitzungen",
 ])
 
 with tab_search:
-    query = st.text_input(
-        "Volltextsuche",
-        placeholder="z.B. Spielplatz, Radweg, Haushalt, Schulbau...",
-    )
+    col_q, col_mode = st.columns([4, 1])
+    with col_q:
+        query = st.text_input(
+            "Suche",
+            placeholder="z.B. Spielplatz, Radweg, Haushalt, Schulbau...",
+        )
+    with col_mode:
+        search_mode = st.radio("Modus", ["Volltext", "Semantisch"], horizontal=True)
 
     if query or selected_type != "Alle" or selected_term != "Alle":
-        results = run_async(search_papers(
-            query=query,
-            paper_type=selected_type if selected_type != "Alle" else None,
-            term=selected_term if selected_term != "Alle" else None,
-        ))
+        if search_mode == "Semantisch" and query:
+            from berliner_verwaltung.enrichment.embeddings import EmbeddingPipeline
+
+            async def _semantic_search():  # type: ignore[no-redef]
+                async with async_session_factory() as s:
+                    pipeline = EmbeddingPipeline(s)
+                    return await pipeline.semantic_search(query, limit=30)
+
+            results_raw = run_async(_semantic_search())
+            results = [
+                {
+                    "reference": r["reference"],
+                    "name": r["name"],
+                    "type": r["paper_type"],
+                    "date": r["date"] or "–",
+                    "oparl_url": "",
+                    "topics": [],
+                    "similarity": r.get("similarity", 0),
+                }
+                for r in results_raw
+            ]
+        else:
+            results = run_async(search_papers(
+                query=query,
+                paper_type=selected_type if selected_type != "Alle" else None,
+                term=selected_term if selected_term != "Alle" else None,
+            ))
 
         st.info(f"{len(results)} Ergebnisse")
 
@@ -238,7 +314,10 @@ with tab_search:
                     )
                     st.caption(f"Themen: {topic_tags}")
             with col2:
-                st.caption(f"{r['type']} | {r['date']}")
+                meta = f"{r['type']} | {r['date']}"
+                if r.get("similarity"):
+                    meta += f" | {r['similarity']:.0%}"
+                st.caption(meta)
                 if r["oparl_url"]:
                     st.link_button("Original", r["oparl_url"], use_container_width=True)
             st.divider()
@@ -300,6 +379,33 @@ with tab_budget:
             )
     else:
         st.info("Noch keine Haushaltsdaten geladen. Starte: bv load-budgets")
+
+with tab_pardok:
+    st.subheader("Abgeordnetenhaus Berlin — FHK-relevante Vorgaenge")
+    pardok_query = st.text_input(
+        "Suche in AGH-Dokumenten",
+        placeholder="z.B. Kottbusser Tor, Schulbau, Milieuschutz...",
+        key="pardok_search",
+    )
+    if pardok_query:
+        pardok_results = run_async(search_pardok(pardok_query))
+    else:
+        pardok_results = run_async(get_pardok_fhk(50))
+
+    st.info(f"{len(pardok_results)} Dokumente")
+    for r in pardok_results:
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.markdown(f"**[{r['dok_nr']}]** {r['titel']}")
+            meta = f"{r['dok_typ'] or ''} | {r['systematik'] or ''}"
+            if r["urheber"]:
+                meta += f" | {r['urheber']}"
+            st.caption(meta)
+        with col2:
+            st.caption(r["datum"] or "")
+            if r["pdf_url"]:
+                st.link_button("PDF", r["pdf_url"], use_container_width=True)
+        st.divider()
 
 with tab_analysis:
     st.subheader("Themen-Verteilung (VI. Wahlperiode)")

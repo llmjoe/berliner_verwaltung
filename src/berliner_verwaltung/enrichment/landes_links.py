@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from berliner_verwaltung.db.models import File, Paper
+from berliner_verwaltung.db.models import File, Paper, PardokDokument, PardokVorgang
 
 logger = logging.getLogger(__name__)
 
@@ -130,3 +130,60 @@ async def analyze_landes_links(session: AsyncSession) -> dict:
         "senate_depts": by_type["senate_dept"].most_common(20),
         "bebauungsplaene": by_type["bebauungsplan"].most_common(20),
     }
+
+
+async def link_pardok_to_bvv(session: AsyncSession) -> list[dict]:
+    """Find PARDOK Vorgaenge related to FHK BVV papers by keyword overlap."""
+    pardok_result = await session.execute(
+        select(
+            PardokVorgang.id,
+            PardokVorgang.vorgang_id,
+            PardokVorgang.systematik_label,
+            PardokVorgang.deskriptoren,
+        ).where(PardokVorgang.is_fhk.is_(True))
+    )
+    pardok_fhk = pardok_result.all()
+
+    dok_result = await session.execute(
+        select(PardokDokument.titel, PardokDokument.dok_nr, PardokDokument.vorgang_id)
+        .join(PardokVorgang, PardokDokument.vorgang_id == PardokVorgang.id)
+        .where(PardokVorgang.is_fhk.is_(True))
+        .where(PardokDokument.titel.isnot(None))
+    )
+    pardok_docs = dok_result.all()
+
+    bvv_result = await session.execute(
+        select(Paper.id, Paper.name, Paper.reference)
+        .where(Paper.reference.like("%/VI"))
+        .where(Paper.name.isnot(None))
+    )
+    bvv_papers = bvv_result.all()
+
+    links = []
+    bvv_name_index = {p.name.lower(): (p.id, p.reference) for p in bvv_papers if p.name}
+
+    for dok_titel, dok_nr, _vorgang_db_id in pardok_docs:
+        titel_lower = dok_titel.lower()
+        for bvv_name, (_bvv_id, bvv_ref) in bvv_name_index.items():
+            overlap_words = set(titel_lower.split()) & set(bvv_name.split())
+            meaningful = {
+                w for w in overlap_words
+                if len(w) > 4 and w not in {
+                    "berlin", "bezirk", "friedrichshain", "kreuzberg",
+                    "bezirksamt", "bezirks", "werden", "durch",
+                }
+            }
+            if len(meaningful) >= 3:
+                links.append({
+                    "pardok_dok_nr": dok_nr,
+                    "pardok_titel": dok_titel[:80],
+                    "bvv_reference": bvv_ref,
+                    "bvv_name": bvv_name[:80],
+                    "overlap_words": list(meaningful)[:5],
+                })
+
+    logger.info(
+        "Found %d PARDOK-BVV links from %d FHK Vorgaenge",
+        len(links), len(pardok_fhk),
+    )
+    return links
