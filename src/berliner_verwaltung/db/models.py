@@ -308,6 +308,44 @@ class BudgetItem(Base):
     )
 
 
+# ---------------------------------------------------------------------------
+# Procurement data (Vergabedaten)
+# ---------------------------------------------------------------------------
+
+
+class Tender(Base):
+    """Public procurement notice (Vergabebekanntmachung)."""
+
+    __tablename__ = "tenders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    source_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    contracting_authority: Mapped[str | None] = mapped_column(String, index=True)
+    tender_type: Mapped[str | None] = mapped_column(String, index=True)
+    procedure_type: Mapped[str | None] = mapped_column(String)
+    cpv_codes: Mapped[list | None] = mapped_column(JSONB)
+    estimated_value: Mapped[float | None] = mapped_column()
+    awarded_value: Mapped[float | None] = mapped_column()
+    currency: Mapped[str] = mapped_column(String(3), default="EUR")
+    winner: Mapped[str | None] = mapped_column(String)
+    publication_date: Mapped[dt.date | None] = mapped_column(index=True)
+    deadline_date: Mapped[dt.date | None] = mapped_column()
+    award_date: Mapped[dt.date | None] = mapped_column()
+    status: Mapped[str | None] = mapped_column(String)
+    url: Mapped[str | None] = mapped_column(String)
+    data: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_tenders_authority_date", "contracting_authority", "publication_date"),
+    )
+
+
 class CrawlLog(Base):
     __tablename__ = "crawl_log"
 

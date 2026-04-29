@@ -145,6 +145,19 @@ async def cmd_load_budgets(args: argparse.Namespace) -> None:
             print(f"  {p.reference} ({p.year1}/{p.year2}): {p.item_count} items")
 
 
+async def cmd_scrape_tenders(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.ingestion.vergabe.scraper import VergabeScraper
+
+    async with async_session_factory() as session, VergabeScraper(session) as scraper:
+        stats = await scraper.scrape(max_pages=args.pages)
+        print(
+            f"Vergabe: {stats['new']} new, "
+            f"{stats['skipped']} skipped, "
+            f"{stats['errors']} errors"
+        )
+
+
 async def cmd_analyze(args: argparse.Namespace) -> None:
     from berliner_verwaltung.analysis.anomalies import detect_budget_anomalies
     from berliner_verwaltung.analysis.budget_trends import analyze_budget_trends
@@ -264,6 +277,9 @@ def main() -> None:
 
     subparsers.add_parser("load-budgets", help="Extract and load Haushaltspläne into DB")
 
+    vg_parser = subparsers.add_parser("scrape-tenders", help="Scrape Vergabeplattform Berlin")
+    vg_parser.add_argument("--pages", type=int, default=33, help="Max pages to scrape")
+
     an_parser = subparsers.add_parser("analyze", help="Run pattern detection and trend analysis")
     an_parser.add_argument("-n", "--limit", type=int, default=20)
 
@@ -281,6 +297,7 @@ def main() -> None:
         "classify": cmd_classify,
         "embed": cmd_embed,
         "load-budgets": cmd_load_budgets,
+        "scrape-tenders": cmd_scrape_tenders,
         "analyze": cmd_analyze,
         "stats": cmd_stats,
     }
