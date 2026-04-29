@@ -57,7 +57,7 @@ class LLMClient(ABC):
 
 
 class OllamaClient(LLMClient):
-    def __init__(self, model: str = "qwen2.5:14b", base_url: str | None = None) -> None:
+    def __init__(self, model: str = "qwen2.5:7b-instruct", base_url: str | None = None) -> None:
         self.model = model
         self.base_url = base_url or settings.ollama_base_url
 
@@ -163,7 +163,7 @@ class OpenAIClient(LLMClient):
 
 def get_llm_client(provider: str = "ollama", model: str | None = None) -> LLMClient:
     if provider == "ollama":
-        return OllamaClient(model=model or "qwen2.5:14b")
+        return OllamaClient(model=model or "qwen2.5:7b-instruct")
     elif provider == "anthropic":
         return AnthropicClient(model=model or "claude-sonnet-4-20250514")
     elif provider == "openai":
