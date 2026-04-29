@@ -309,6 +309,55 @@ class BudgetItem(Base):
 
 
 # ---------------------------------------------------------------------------
+# PARDOK (Abgeordnetenhaus Berlin)
+# ---------------------------------------------------------------------------
+
+
+class PardokVorgang(Base):
+    """Parliamentary proceeding from the Berlin Abgeordnetenhaus."""
+
+    __tablename__ = "pardok_vorgaenge"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    vorgang_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    vorgang_typ: Mapped[str | None] = mapped_column(String, index=True)
+    systematik: Mapped[str | None] = mapped_column(String, index=True)
+    systematik_label: Mapped[str | None] = mapped_column(String)
+    wahlperiode: Mapped[int | None] = mapped_column(Integer)
+    deskriptoren: Mapped[list | None] = mapped_column(JSONB)
+    is_fhk: Mapped[bool] = mapped_column(default=False, index=True)
+    data: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    dokumente: Mapped[list[PardokDokument]] = relationship(back_populates="vorgang")
+
+
+class PardokDokument(Base):
+    """Document within a PARDOK Vorgang (Drucksache, Protokoll, etc.)."""
+
+    __tablename__ = "pardok_dokumente"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    dokument_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    vorgang_id: Mapped[int] = mapped_column(
+        ForeignKey("pardok_vorgaenge.id"), index=True
+    )
+    dok_art: Mapped[str | None] = mapped_column(String, index=True)
+    dok_typ: Mapped[str | None] = mapped_column(String, index=True)
+    dok_nr: Mapped[str | None] = mapped_column(String, index=True)
+    titel: Mapped[str | None] = mapped_column(String)
+    datum: Mapped[dt.date | None] = mapped_column(index=True)
+    urheber: Mapped[str | None] = mapped_column(String)
+    abstract: Mapped[str | None] = mapped_column(Text)
+    pdf_url: Mapped[str | None] = mapped_column(String)
+    data: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+
+    vorgang: Mapped[PardokVorgang] = relationship(back_populates="dokumente")
+
+
+# ---------------------------------------------------------------------------
 # Procurement data (Vergabedaten)
 # ---------------------------------------------------------------------------
 

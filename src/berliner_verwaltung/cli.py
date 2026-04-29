@@ -199,6 +199,27 @@ async def cmd_extract_recipients(args: argparse.Namespace) -> None:
     print(f"Saved to {output}")
 
 
+async def cmd_crawl_pardok(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.ingestion.pardok.crawler import (
+        download_pardok_xml,
+        load_pardok_to_db,
+        parse_pardok_xml,
+    )
+
+    xml_path = await download_pardok_xml(wp=args.wp)
+    vorgaenge, dokumente = parse_pardok_xml(xml_path)
+
+    async with async_session_factory() as session:
+        stats = await load_pardok_to_db(session, vorgaenge, dokumente, wp=args.wp)
+        print(
+            f"PARDOK WP{args.wp}: {stats['vorgaenge_new']} Vorgaenge, "
+            f"{stats['dokumente_new']} Dokumente"
+        )
+        fhk_count = sum(1 for v in vorgaenge if v["is_fhk"])
+        print(f"  davon FHK-relevant: {fhk_count}")
+
+
 async def cmd_scrape_tenders(args: argparse.Namespace) -> None:
     from berliner_verwaltung.db.connection import async_session_factory
     from berliner_verwaltung.ingestion.vergabe.scraper import VergabeScraper
@@ -335,6 +356,9 @@ def main() -> None:
     rc_parser.add_argument("--provider", default="ollama", help="LLM provider")
     rc_parser.add_argument("--model", default=None, help="LLM model override")
 
+    pk_parser = subparsers.add_parser("crawl-pardok", help="Download and import PARDOK XML")
+    pk_parser.add_argument("--wp", type=int, default=19, help="Wahlperiode (default: 19)")
+
     vg_parser = subparsers.add_parser("scrape-tenders", help="Scrape Vergabeplattform Berlin")
     vg_parser.add_argument("--pages", type=int, default=33, help="Max pages to scrape")
 
@@ -356,6 +380,7 @@ def main() -> None:
         "embed": cmd_embed,
         "load-budgets": cmd_load_budgets,
         "extract-recipients": cmd_extract_recipients,
+        "crawl-pardok": cmd_crawl_pardok,
         "scrape-tenders": cmd_scrape_tenders,
         "analyze": cmd_analyze,
         "stats": cmd_stats,
