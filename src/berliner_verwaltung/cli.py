@@ -93,6 +93,43 @@ async def cmd_search(args: argparse.Namespace) -> None:
             print()
 
 
+async def cmd_classify(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.enrichment.classifier import PaperClassifier
+
+    async with async_session_factory() as session:
+        classifier = PaperClassifier(session)
+        stats = await classifier.classify_batch_keywords(
+            legislative_term=args.term, limit=args.limit
+        )
+        await session.commit()
+        print(
+            f"Classification: {stats['classified']} classified, "
+            f"{stats['skipped']} skipped, "
+            f"{stats['errors']} errors"
+        )
+
+
+async def cmd_stats(args: argparse.Namespace) -> None:
+    from sqlalchemy import text as sql_text
+
+    from berliner_verwaltung.db.connection import engine
+
+    async with engine.connect() as conn:
+        for table in [
+            "bodies", "organizations", "persons", "meetings",
+            "agenda_items", "papers", "files", "crawl_log",
+        ]:
+            r = await conn.execute(sql_text(f"SELECT count(*) FROM {table}"))
+            print(f"  {table:25s} {r.scalar():>8,}")
+
+        r2 = await conn.execute(sql_text(
+            "SELECT pg_size_pretty(pg_database_size(current_database()))"
+        ))
+        print(f"\n  DB size: {r2.scalar()}")
+    await engine.dispose()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="bv",
@@ -118,6 +155,12 @@ def main() -> None:
     search_parser.add_argument("query", help="Search query (German)")
     search_parser.add_argument("-n", "--limit", type=int, default=20)
 
+    cl_parser = subparsers.add_parser("classify", help="Classify papers by topic (keywords)")
+    cl_parser.add_argument("-n", "--limit", type=int, default=500)
+    cl_parser.add_argument("-t", "--term", default=None, help="Legislative term filter (e.g. VI)")
+
+    subparsers.add_parser("stats", help="Show database statistics")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -127,6 +170,8 @@ def main() -> None:
         "extract-text": cmd_extract_text,
         "index-search": cmd_index_search,
         "search": cmd_search,
+        "classify": cmd_classify,
+        "stats": cmd_stats,
     }
 
     if args.command in commands:
