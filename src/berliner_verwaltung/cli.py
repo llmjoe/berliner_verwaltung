@@ -145,6 +145,60 @@ async def cmd_load_budgets(args: argparse.Namespace) -> None:
             print(f"  {p.reference} ({p.year1}/{p.year2}): {p.item_count} items")
 
 
+async def cmd_extract_recipients(args: argparse.Namespace) -> None:
+    import json
+    from pathlib import Path
+
+    from berliner_verwaltung.ingestion.haushalt.recipients import (
+        extract_explanations_from_pdf,
+        extract_recipients_with_llm,
+    )
+    from berliner_verwaltung.llm.client import get_llm_client
+
+    llm = get_llm_client(args.provider, model=args.model)
+
+    pdf_files = [
+        (11668, "DS/1740/VI"),
+        (10670, "DS/0830/VI"),
+        (9830, "DS/0077/VI"),
+    ]
+
+    all_recipients = []
+    for file_id, reference in pdf_files:
+        pdf_path = Path(f"data/pdfs/{file_id}.pdf")
+        if not pdf_path.exists():
+            continue
+        print(f"Extracting from {reference}...")
+        explanations = extract_explanations_from_pdf(pdf_path)
+        recipients = await extract_recipients_with_llm(llm, explanations)
+        all_recipients.extend(recipients)
+        print(f"  {len(recipients)} recipients from {len(explanations)} explanations")
+
+    print(f"\nTotal: {len(all_recipients)} recipients")
+
+    output = Path("data/recipients.json")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(
+        [
+            {
+                "kapitel": r.kapitel,
+                "titel": r.titel,
+                "bezeichnung": r.bezeichnung,
+                "recipient": r.recipient_name,
+                "amount_year1": r.amount_year1,
+                "amount_year2": r.amount_year2,
+                "purpose": r.purpose,
+                "type": r.recipient_type,
+                "plan": f"{r.plan_year1}/{r.plan_year2}",
+            }
+            for r in all_recipients
+        ],
+        indent=2,
+        ensure_ascii=False,
+    ))
+    print(f"Saved to {output}")
+
+
 async def cmd_scrape_tenders(args: argparse.Namespace) -> None:
     from berliner_verwaltung.db.connection import async_session_factory
     from berliner_verwaltung.ingestion.vergabe.scraper import VergabeScraper
@@ -277,6 +331,10 @@ def main() -> None:
 
     subparsers.add_parser("load-budgets", help="Extract and load Haushaltspläne into DB")
 
+    rc_parser = subparsers.add_parser("extract-recipients", help="Extract Zuwendungsempfaenger")
+    rc_parser.add_argument("--provider", default="ollama", help="LLM provider")
+    rc_parser.add_argument("--model", default=None, help="LLM model override")
+
     vg_parser = subparsers.add_parser("scrape-tenders", help="Scrape Vergabeplattform Berlin")
     vg_parser.add_argument("--pages", type=int, default=33, help="Max pages to scrape")
 
@@ -297,6 +355,7 @@ def main() -> None:
         "classify": cmd_classify,
         "embed": cmd_embed,
         "load-budgets": cmd_load_budgets,
+        "extract-recipients": cmd_extract_recipients,
         "scrape-tenders": cmd_scrape_tenders,
         "analyze": cmd_analyze,
         "stats": cmd_stats,
