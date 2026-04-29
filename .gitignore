@@ -32,6 +32,9 @@ htmlcov/
 
 data/raw/
 data/cache/
+data/*.xml
+data/*.json
+data/pdfs/
 *.pdf
 
 logs/
