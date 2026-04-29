@@ -110,14 +110,18 @@ class PdfExtractor:
             self.stats["errors"] += 1
             return None
 
-    async def extract_batch(self, limit: int = 100) -> dict[str, int]:
+    async def extract_batch(self, limit: int = 100, commit_every: int = 50) -> dict[str, int]:
         files = await self.get_files_needing_extraction(limit)
         logger.info("Found %d files needing text extraction", len(files))
 
-        for file in files:
+        for i, file in enumerate(files):
             await self.extract_one(file)
 
-        await self.session.flush()
+            if (i + 1) % commit_every == 0:
+                await self.session.commit()
+                logger.info("Progress: %d/%d files processed", i + 1, len(files))
+
+        await self.session.commit()
 
         logger.info(
             "Extraction done: %d extracted, %d empty, %d need OCR, %d errors, %d skipped",
