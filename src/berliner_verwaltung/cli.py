@@ -145,6 +145,63 @@ async def cmd_load_budgets(args: argparse.Namespace) -> None:
             print(f"  {p.reference} ({p.year1}/{p.year2}): {p.item_count} items")
 
 
+async def cmd_analyze(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.analysis.anomalies import detect_budget_anomalies
+    from berliner_verwaltung.analysis.budget_trends import analyze_budget_trends
+    from berliner_verwaltung.analysis.topic_trends import analyze_topic_trends
+    from berliner_verwaltung.db.connection import async_session_factory
+
+    async with async_session_factory() as session:
+        print("=== Haushalts-Trends ===\n")
+        budget = await analyze_budget_trends(session, limit=args.limit)
+
+        print("Top Steigerungen (nominal):")
+        for c in budget.biggest_increases[:10]:
+            print(
+                f"  {c.kapitel}/{c.titel}: {c.change_pct:+.1f}% "
+                f"({c.amount_from:,.0f} -> {c.amount_to:,.0f})  {c.bezeichnung[:50]}"
+            )
+
+        print("\nTop Kuerzungen (nominal):")
+        for c in budget.biggest_decreases[:10]:
+            print(
+                f"  {c.kapitel}/{c.titel}: {c.change_pct:+.1f}% "
+                f"({c.amount_from:,.0f} -> {c.amount_to:,.0f})  {c.bezeichnung[:50]}"
+            )
+
+        print(f"\nNeue Posten: {len(budget.new_items)}")
+        for item in budget.new_items[:5]:
+            print(f"  {item['key']}: {item['ansatz']:,.0f} EUR  {item['bezeichnung'][:50]}")
+
+        print(f"\nEntfallene Posten: {len(budget.discontinued_items)}")
+        for item in budget.discontinued_items[:5]:
+            print(f"  {item['key']}: {item['ansatz']:,.0f} EUR  {item['bezeichnung'][:50]}")
+
+        print("\nKapitel-Trends (real, inflationsbereinigt):")
+        for t in budget.kapitel_trends[:10]:
+            print(f"  {t.kapitel}: {t.change_real_pct:+.1f}% real")
+        print("  ...")
+        for t in budget.kapitel_trends[-5:]:
+            print(f"  {t.kapitel}: {t.change_real_pct:+.1f}% real")
+
+        print("\n=== Themen-Trends (VI. WP) ===\n")
+        topics = await analyze_topic_trends(session)
+        print(f"Klassifiziert: {topics.total_classified}, Offen: {topics.unclassified_count}")
+        for t in topics.topic_trends:
+            arrow = {"rising": "^", "declining": "v", "stable": "="}[t.trend]
+            print(f"  [{arrow}] {t.code:15s} {t.total:>4}  {t.recent_share:.1%}  {t.by_year}")
+
+        if topics.top_cooccurrences:
+            print("\nHaeufige Themen-Kombinationen:")
+            for co in topics.top_cooccurrences[:10]:
+                print(f"  {co.topic_a} + {co.topic_b}: {co.count}")
+
+        print("\n=== Anomalien ===\n")
+        anomalies = await detect_budget_anomalies(session)
+        for a in anomalies[:15]:
+            print(f"  [{a.severity:6s}] z={a.z_score:+.1f}  {a.description[:70]}")
+
+
 async def cmd_stats(args: argparse.Namespace) -> None:
     from sqlalchemy import text as sql_text
 
@@ -206,6 +263,10 @@ def main() -> None:
     em_parser.add_argument("--model", default="bge-m3", help="Embedding model (default: bge-m3)")
 
     subparsers.add_parser("load-budgets", help="Extract and load Haushaltspläne into DB")
+
+    an_parser = subparsers.add_parser("analyze", help="Run pattern detection and trend analysis")
+    an_parser.add_argument("-n", "--limit", type=int, default=20)
+
     subparsers.add_parser("stats", help="Show database statistics")
 
     args = parser.parse_args()
@@ -220,6 +281,7 @@ def main() -> None:
         "classify": cmd_classify,
         "embed": cmd_embed,
         "load-budgets": cmd_load_budgets,
+        "analyze": cmd_analyze,
         "stats": cmd_stats,
     }
 
