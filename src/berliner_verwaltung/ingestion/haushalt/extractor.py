@@ -1,10 +1,14 @@
 """Extract budget line items from Bezirkshaushaltsplan PDFs.
 
 Parses the standardized table format used in Berlin district budgets:
-  Titel | Fkt | Bezeichnung | Ansatz 2026 | Ansatz 2027 | Ansatz 2025 | Ist 2024
+  Titel | Fkt | Bezeichnung | Ansatz year1 | Ansatz year2 | Ansatz prev | Ist prev
 
-Each page belongs to a Kapitel (e.g. 3300 = Bezirksbuergermeisterin) and
-contains Einnahmen (revenue) or Ausgaben (expenditure) items.
+Berlin budget Titel numbering:
+  1xxxx-2xxxx = Einnahmen (revenue)
+  4xxxx-9xxxx = Ausgaben (expenditure)
+
+IKT pages (MG 32) contain duplicate IT cost titles — these are merged
+with the main entry by keeping the version that has amounts.
 """
 
 from __future__ import annotations
@@ -19,8 +23,6 @@ import pdfplumber
 logger = logging.getLogger(__name__)
 
 KAPITEL_PATTERN = re.compile(r"Friedrichshain-Kreuzberg\s+(\d{4})")
-TITEL_PATTERN = re.compile(r"^(\d{5})")
-YEAR_HEADER_PATTERN = re.compile(r"(\d{4})\s+(\d{4})\s+(\d{4})")
 
 
 def _parse_amount(s: str | None) -> float | None:
@@ -33,6 +35,23 @@ def _parse_amount(s: str | None) -> float | None:
         return None
 
 
+def _fix_hyphenation(text: str) -> str:
+    """Rejoin hyphenated words split across lines: 'Be- träge' -> 'Beträge'."""
+    text = re.sub(r"(\w)- [\d.,\-]+ (\w)", r"\1\2", text)
+    text = re.sub(r"(\w)- (\w)", r"\1\2", text)
+    return text
+
+
+def _classify_section(titel: str) -> str:
+    """Derive Einnahmen/Ausgaben from the Titel number (Berlin convention)."""
+    if not titel or not titel[0].isdigit():
+        return ""
+    first = int(titel[0])
+    if first <= 3:
+        return "Einnahmen"
+    return "Ausgaben"
+
+
 @dataclass
 class BudgetItem:
     kapitel: str
@@ -43,10 +62,20 @@ class BudgetItem:
     ansatz_year2: float | None = None
     ansatz_prev: float | None = None
     ist_prev: float | None = None
-    section: str = ""  # "Einnahmen" or "Ausgaben"
-    kennbuchstabe: str = ""  # e.g. "E03", "A05", "T", "Z"
+    section: str = ""
+    kennbuchstabe: str = ""
     page: int = 0
     erlaeuterung: str = ""
+
+    @property
+    def key(self) -> str:
+        return f"{self.kapitel}/{self.titel}"
+
+    def has_amounts(self) -> bool:
+        return any(
+            v is not None
+            for v in [self.ansatz_year1, self.ansatz_year2, self.ansatz_prev, self.ist_prev]
+        )
 
 
 @dataclass
@@ -60,7 +89,7 @@ class BudgetPlan:
 
 
 def _extract_item_from_table(
-    rows: list[list[str | None]], kapitel: str, section: str, page: int
+    rows: list[list[str | None]], kapitel: str, page: int
 ) -> BudgetItem | None:
     if not rows or not rows[0]:
         return None
@@ -69,7 +98,7 @@ def _extract_item_from_table(
 
     titel = ""
     funktion = ""
-    bezeichnung_parts = []
+    bezeichnung_parts: list[str] = []
     amounts: list[str] = []
 
     for cell in cells:
@@ -87,7 +116,6 @@ def _extract_item_from_table(
     if not titel:
         return None
 
-    # Second row often has continuation of Bezeichnung and Kennbuchstabe
     kennbuchstabe = ""
     if len(rows) > 1 and rows[1]:
         for cell in rows[1]:
@@ -100,14 +128,14 @@ def _extract_item_from_table(
 
     bezeichnung = " ".join(bezeichnung_parts).strip()
     bezeichnung = re.sub(r"\s+", " ", bezeichnung)
-    bezeichnung = bezeichnung.rstrip("-").strip()
+    bezeichnung = _fix_hyphenation(bezeichnung)
 
     item = BudgetItem(
         kapitel=kapitel,
         titel=titel,
         funktion=funktion,
         bezeichnung=bezeichnung,
-        section=section,
+        section=_classify_section(titel),
         kennbuchstabe=kennbuchstabe,
         page=page,
     )
@@ -124,15 +152,30 @@ def _extract_item_from_table(
     return item
 
 
-def extract_budget_plan(pdf_path: Path, reference: str = "", file_id: int = 0) -> BudgetPlan:
+def _dedup_items(items: list[BudgetItem]) -> list[BudgetItem]:
+    """Merge duplicate items (e.g. IKT pages). Keep the version with amounts."""
+    seen: dict[str, BudgetItem] = {}
+    for item in items:
+        key = item.key
+        if key not in seen:
+            seen[key] = item
+        elif item.has_amounts() and not seen[key].has_amounts():
+            item.bezeichnung = item.bezeichnung or seen[key].bezeichnung
+            seen[key] = item
+        elif item.has_amounts() and seen[key].has_amounts():
+            seen[key] = item
+    return list(seen.values())
+
+
+def extract_budget_plan(
+    pdf_path: Path, reference: str = "", file_id: int = 0
+) -> BudgetPlan:
     """Extract all budget line items from a Bezirkshaushaltsplan PDF."""
     plan = BudgetPlan(file_id=file_id, reference=reference, year1=0, year2=0)
     current_kapitel = ""
-    current_section = ""
-    current_kapitel_name = ""
+    raw_items: list[BudgetItem] = []
 
     with pdfplumber.open(pdf_path) as pdf:
-        # Detect years from header
         for page in pdf.pages[:10]:
             text = page.extract_text() or ""
             year_match = re.search(r"(\d{4})\s*(?:und|/)\s*(\d{4})", text)
@@ -148,26 +191,17 @@ def extract_budget_plan(pdf_path: Path, reference: str = "", file_id: int = 0) -
             if kapitel_match:
                 current_kapitel = kapitel_match.group(1)
 
-            if "Einnahmen" in text:
-                current_section = "Einnahmen"
-            elif "Ausgaben" in text:
-                current_section = "Ausgaben"
-
-            # Detect Kapitel name from page header
             lines = text.split("\n")
             for line in lines[1:5]:
                 line = line.strip()
                 if (
                     line
-                    and not re.match(r"^\d|^Beträge|^Titel|^Kb|^Ansatz|^Ist", line)
+                    and not re.match(r"^\d|^Beträge|^Titel|^Kb|^Ansatz|^Ist|^MG", line)
                     and line != "Friedrichshain-Kreuzberg"
                     and len(line) > 3
                 ):
-                        current_kapitel_name = line
-                        break
-
-            if current_kapitel and current_kapitel_name:
-                plan.kapitel_names[current_kapitel] = current_kapitel_name
+                    plan.kapitel_names[current_kapitel] = line
+                    break
 
             tables = page.extract_tables()
             for table in tables:
@@ -183,15 +217,17 @@ def extract_budget_plan(pdf_path: Path, reference: str = "", file_id: int = 0) -
                 if not has_titel:
                     continue
 
-                item = _extract_item_from_table(
-                    table, current_kapitel, current_section, page_num + 1
-                )
+                item = _extract_item_from_table(table, current_kapitel, page_num + 1)
                 if item:
-                    plan.items.append(item)
+                    raw_items.append(item)
+
+    plan.items = _dedup_items(raw_items)
 
     logger.info(
-        "Extracted %d items from %s (%d-%d), %d Kapitel",
+        "Extracted %d items (%d raw, %d deduped) from %s (%d-%d), %d Kapitel",
         len(plan.items),
+        len(raw_items),
+        len(raw_items) - len(plan.items),
         reference or pdf_path.name,
         plan.year1,
         plan.year2,
