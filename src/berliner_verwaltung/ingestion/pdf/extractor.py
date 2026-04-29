@@ -20,18 +20,31 @@ logger = logging.getLogger(__name__)
 MIN_CHARS_PER_PAGE = 20
 
 
+MAX_PAGES = 200
+MAX_FILE_SIZE_MB = 20
+
+
 def extract_text_from_pdf(pdf_path: Path) -> tuple[str, dict]:
     """Extract text from a PDF file. Returns (text, metadata).
 
     metadata contains: page_count, extracted_pages, empty_pages, method.
+    Skips files > MAX_FILE_SIZE_MB and caps at MAX_PAGES pages.
     """
+    file_size_mb = pdf_path.stat().st_size / (1024 * 1024)
+    if file_size_mb > MAX_FILE_SIZE_MB:
+        return "", {
+            "page_count": 0, "extracted_pages": 0, "empty_pages": 0,
+            "method": "skipped", "char_count": 0, "needs_ocr": False,
+            "skip_reason": f"file too large ({file_size_mb:.1f}MB)",
+        }
+
     text_parts: list[str] = []
     empty_pages = 0
     extracted_pages = 0
 
     with pdfplumber.open(pdf_path) as pdf:
         page_count = len(pdf.pages)
-        for page in pdf.pages:
+        for page in pdf.pages[:MAX_PAGES]:
             page_text = page.extract_text() or ""
             if len(page_text.strip()) < MIN_CHARS_PER_PAGE:
                 empty_pages += 1

@@ -53,8 +53,11 @@ def test_extract_nonexistent_file() -> None:
         extract_text_from_pdf(Path("/nonexistent/test.pdf"))
 
 
-def test_extract_metadata_flags_ocr_need() -> None:
+def test_extract_metadata_flags_ocr_need(tmp_path: Path) -> None:
     """When most pages are empty, needs_ocr should be True."""
+    fake_pdf = tmp_path / "dummy.pdf"
+    fake_pdf.write_bytes(b"x" * 1000)
+
     with patch("berliner_verwaltung.ingestion.pdf.extractor.pdfplumber") as mock_plumber:
         mock_pdf = MagicMock()
         mock_page = MagicMock()
@@ -64,7 +67,7 @@ def test_extract_metadata_flags_ocr_need() -> None:
         mock_pdf.__exit__ = MagicMock(return_value=False)
         mock_plumber.open.return_value = mock_pdf
 
-        text, metadata = extract_text_from_pdf(Path("dummy.pdf"))
+        text, metadata = extract_text_from_pdf(fake_pdf)
         assert text == ""
         assert metadata["needs_ocr"] is True
         assert metadata["empty_pages"] == 5
