@@ -17,7 +17,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from berliner_verwaltung.db.models import File, Paper
-from berliner_verwaltung.enrichment.taxonomy import TAXONOMY, keyword_classify
+from berliner_verwaltung.enrichment.taxonomy import TAXONOMY, TOPIC_BY_CODE, keyword_classify
+from berliner_verwaltung.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +68,13 @@ def build_classification_prompt(
 
 
 class PaperClassifier:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        llm_client: LLMClient | None = None,
+    ) -> None:
         self.session = session
+        self.llm = llm_client
         self.stats = {"classified": 0, "skipped": 0, "errors": 0}
 
     async def get_unclassified_papers(
@@ -118,6 +124,88 @@ class PaperClassifier:
             method="keyword",
             confidence=confidence,
         )
+
+    async def classify_llm(self, paper: Paper) -> ClassificationResult | None:
+        if not self.llm:
+            raise ValueError("LLM client required for LLM classification")
+
+        file_text = await self._get_paper_text(paper.id)
+        prompt = build_classification_prompt(paper.name or "", paper.paper_type, file_text)
+
+        result = await self.llm.complete_json(prompt)
+        if not result or not isinstance(result, dict):
+            return None
+
+        raw_topics = result.get("topics", [])
+        topics = []
+        for t in raw_topics[:3]:
+            code = t.get("code", "")
+            if code in TOPIC_BY_CODE:
+                topics.append({
+                    "code": code,
+                    "confidence": float(t.get("confidence", 0.5)),
+                    "reason": t.get("reason", "llm"),
+                })
+
+        if not topics:
+            return None
+
+        return ClassificationResult(
+            paper_id=paper.id,
+            topics=topics,
+            summary=result.get("summary", ""),
+            method="llm",
+            confidence=topics[0]["confidence"],
+        )
+
+    async def _store_classification(self, paper: Paper, result: ClassificationResult) -> None:
+        existing = paper.data or {}
+        paper.data = {
+            **existing,
+            "classification": {
+                "topics": result.topics,
+                "summary": result.summary,
+                "method": result.method,
+                "confidence": result.confidence,
+            },
+        }
+
+    async def classify_batch_llm(
+        self,
+        legislative_term: str | None = None,
+        limit: int = 100,
+        commit_every: int = 10,
+    ) -> dict[str, int]:
+        papers = await self.get_unclassified_papers(legislative_term, limit)
+        logger.info("Classifying %d papers via LLM", len(papers))
+
+        for i, paper in enumerate(papers):
+            try:
+                result = await self.classify_llm(paper)
+                if result and result.topics:
+                    await self._store_classification(paper, result)
+                    self.stats["classified"] += 1
+                else:
+                    self.stats["skipped"] += 1
+            except Exception as e:
+                logger.warning("LLM classification failed for paper %d: %s", paper.id, e)
+                self.stats["errors"] += 1
+
+            if (i + 1) % commit_every == 0:
+                await self.session.commit()
+                logger.info(
+                    "LLM progress: %d/%d (%d classified, %d errors)",
+                    i + 1, len(papers), self.stats["classified"], self.stats["errors"],
+                )
+
+        await self.session.commit()
+        logger.info(
+            "LLM classification done: %d classified, %d skipped, %d errors",
+            self.stats["classified"],
+            self.stats["skipped"],
+            self.stats["errors"],
+        )
+        return self.stats
 
     async def classify_batch_keywords(
         self, legislative_term: str | None = None, limit: int = 100

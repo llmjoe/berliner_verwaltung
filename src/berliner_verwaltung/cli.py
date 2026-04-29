@@ -96,15 +96,40 @@ async def cmd_search(args: argparse.Namespace) -> None:
 async def cmd_classify(args: argparse.Namespace) -> None:
     from berliner_verwaltung.db.connection import async_session_factory
     from berliner_verwaltung.enrichment.classifier import PaperClassifier
+    from berliner_verwaltung.llm.client import get_llm_client
 
     async with async_session_factory() as session:
-        classifier = PaperClassifier(session)
-        stats = await classifier.classify_batch_keywords(
+        if args.method == "llm":
+            llm = get_llm_client(args.provider, model=args.model)
+            classifier = PaperClassifier(session, llm_client=llm)
+            stats = await classifier.classify_batch_llm(
+                legislative_term=args.term, limit=args.limit
+            )
+        else:
+            classifier = PaperClassifier(session)
+            stats = await classifier.classify_batch_keywords(
+                legislative_term=args.term, limit=args.limit
+            )
+        await session.commit()
+        print(
+            f"Classification ({args.method}): {stats['classified']} classified, "
+            f"{stats['skipped']} skipped, "
+            f"{stats['errors']} errors"
+        )
+
+
+async def cmd_embed(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.enrichment.embeddings import EmbeddingPipeline
+
+    async with async_session_factory() as session:
+        pipeline = EmbeddingPipeline(session, model=args.model)
+        stats = await pipeline.embed_batch(
             legislative_term=args.term, limit=args.limit
         )
         await session.commit()
         print(
-            f"Classification: {stats['classified']} classified, "
+            f"Embedding: {stats['embedded']} embedded, "
             f"{stats['skipped']} skipped, "
             f"{stats['errors']} errors"
         )
@@ -155,9 +180,20 @@ def main() -> None:
     search_parser.add_argument("query", help="Search query (German)")
     search_parser.add_argument("-n", "--limit", type=int, default=20)
 
-    cl_parser = subparsers.add_parser("classify", help="Classify papers by topic (keywords)")
+    cl_parser = subparsers.add_parser("classify", help="Classify papers by topic")
     cl_parser.add_argument("-n", "--limit", type=int, default=500)
     cl_parser.add_argument("-t", "--term", default=None, help="Legislative term filter (e.g. VI)")
+    cl_parser.add_argument(
+        "-m", "--method", choices=["keyword", "llm"], default="keyword",
+        help="Classification method (default: keyword)",
+    )
+    cl_parser.add_argument("--provider", default="ollama", help="LLM provider (default: ollama)")
+    cl_parser.add_argument("--model", default=None, help="LLM model override")
+
+    em_parser = subparsers.add_parser("embed", help="Generate embeddings for semantic search")
+    em_parser.add_argument("-n", "--limit", type=int, default=500)
+    em_parser.add_argument("-t", "--term", default=None, help="Legislative term filter (e.g. VI)")
+    em_parser.add_argument("--model", default="bge-m3", help="Embedding model (default: bge-m3)")
 
     subparsers.add_parser("stats", help="Show database statistics")
 
@@ -171,6 +207,7 @@ def main() -> None:
         "index-search": cmd_index_search,
         "search": cmd_search,
         "classify": cmd_classify,
+        "embed": cmd_embed,
         "stats": cmd_stats,
     }
 
