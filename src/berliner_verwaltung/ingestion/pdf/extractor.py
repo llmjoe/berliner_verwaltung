@@ -92,13 +92,16 @@ class PdfExtractor:
 
             if not text:
                 self.stats["empty"] += 1
-                logger.debug("File %d: no text extracted (%d pages)", file.id, metadata["page_count"])
+                logger.debug(
+                    "File %d: no text extracted (%d pages)", file.id, metadata["page_count"]
+                )
                 if metadata["needs_ocr"]:
                     self.stats["needs_ocr"] += 1
                 return None
 
             file.text = text
-            file.data = {**file.data, "extraction": metadata} if file.data else {"extraction": metadata}
+            existing = file.data or {}
+            file.data = {**existing, "extraction": metadata}
             self.stats["extracted"] += 1
             return text
 

@@ -87,9 +87,9 @@ class SearchIndexer:
                 Paper.reference,
                 Paper.paper_type,
                 Paper.date,
-                func.ts_rank(Paper.search_vector, func.plainto_tsquery(text("'german'"), query)).label(
-                    "rank"
-                ),
+                func.ts_rank(
+                    Paper.search_vector, func.plainto_tsquery(text("'german'"), query)
+                ).label("rank"),
                 func.ts_headline(
                     text("'german'"),
                     Paper.name,

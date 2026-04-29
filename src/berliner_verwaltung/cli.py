@@ -22,30 +22,31 @@ async def cmd_crawl_oparl(args: argparse.Namespace) -> None:
     from berliner_verwaltung.ingestion.oparl.client import OparlClient
     from berliner_verwaltung.ingestion.oparl.crawler import OparlCrawler
 
-    async with OparlClient() as client:
-        async with async_session_factory() as session:
-            crawler = OparlCrawler(client, session)
-            log = await crawler.crawl()
-            print(
-                f"Crawl {log.status}: "
-                f"{log.objects_fetched} fetched, "
-                f"{log.objects_new} new, "
-                f"{log.objects_updated} updated"
-            )
+    async with OparlClient() as client, async_session_factory() as session:
+        crawler = OparlCrawler(client, session)
+        log = await crawler.crawl()
+        print(
+            f"Crawl {log.status}: "
+            f"{log.objects_fetched} fetched, "
+            f"{log.objects_new} new, "
+            f"{log.objects_updated} updated"
+        )
 
 
 async def cmd_download_pdfs(args: argparse.Namespace) -> None:
     from berliner_verwaltung.db.connection import async_session_factory
     from berliner_verwaltung.ingestion.pdf.downloader import PdfDownloader
 
-    async with async_session_factory() as session:
-        async with PdfDownloader(session, legislative_term=args.term) as downloader:
-            stats = await downloader.download_batch(limit=args.limit)
-            print(
-                f"Download: {stats['downloaded']} new, "
-                f"{stats['skipped']} skipped, "
-                f"{stats['errors']} errors"
-            )
+    async with (
+        async_session_factory() as session,
+        PdfDownloader(session, legislative_term=args.term) as downloader,
+    ):
+        stats = await downloader.download_batch(limit=args.limit)
+        print(
+            f"Download: {stats['downloaded']} new, "
+            f"{stats['skipped']} skipped, "
+            f"{stats['errors']} errors"
+        )
 
 
 async def cmd_extract_text(args: argparse.Namespace) -> None:

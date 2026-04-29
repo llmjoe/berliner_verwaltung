@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 import httpx
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from berliner_verwaltung.db.models import File, Paper
@@ -87,7 +87,7 @@ class PdfDownloader:
             response.raise_for_status()
 
             content_type = response.headers.get("content-type", "")
-            if "pdf" not in content_type and not response.content[:5] == b"%PDF-":
+            if "pdf" not in content_type and response.content[:5] != b"%PDF-":
                 logger.warning("File %d: expected PDF, got %s", file.id, content_type)
                 self.stats["errors"] += 1
                 return None

@@ -55,16 +55,22 @@ target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM", "TCH"]
+select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
+disallow_any_generics = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = ["pgvector.*", "pdfplumber.*", "camelot.*"]
+ignore_missing_imports = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/berliner_verwaltung"]

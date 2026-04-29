@@ -18,11 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from berliner_verwaltung.db.models import (
     AgendaItem,
     Body,
-    Consultation,
     CrawlLog,
     File,
     Meeting,
-    Membership,
     Organization,
     Paper,
     Person,
@@ -32,10 +30,8 @@ from berliner_verwaltung.ingestion.oparl.client import OparlClient
 from berliner_verwaltung.ingestion.oparl.schemas import (
     OparlAgendaItem,
     OparlBody,
-    OparlConsultation,
     OparlFile,
     OparlMeeting,
-    OparlMembership,
     OparlOrganization,
     OparlPaper,
     OparlPerson,
