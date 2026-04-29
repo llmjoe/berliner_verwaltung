@@ -135,6 +135,16 @@ async def cmd_embed(args: argparse.Namespace) -> None:
         )
 
 
+async def cmd_load_budgets(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.ingestion.haushalt.loader import load_all_budget_plans
+
+    async with async_session_factory() as session:
+        plans = await load_all_budget_plans(session)
+        for p in plans:
+            print(f"  {p.reference} ({p.year1}/{p.year2}): {p.item_count} items")
+
+
 async def cmd_stats(args: argparse.Namespace) -> None:
     from sqlalchemy import text as sql_text
 
@@ -195,6 +205,7 @@ def main() -> None:
     em_parser.add_argument("-t", "--term", default=None, help="Legislative term filter (e.g. VI)")
     em_parser.add_argument("--model", default="bge-m3", help="Embedding model (default: bge-m3)")
 
+    subparsers.add_parser("load-budgets", help="Extract and load Haushaltspläne into DB")
     subparsers.add_parser("stats", help="Show database statistics")
 
     args = parser.parse_args()
@@ -208,6 +219,7 @@ def main() -> None:
         "search": cmd_search,
         "classify": cmd_classify,
         "embed": cmd_embed,
+        "load-budgets": cmd_load_budgets,
         "stats": cmd_stats,
     }
 

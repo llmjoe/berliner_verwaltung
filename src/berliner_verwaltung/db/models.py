@@ -261,6 +261,53 @@ class Consultation(Base):
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Budget data (Bezirkshaushaltsplan)
+# ---------------------------------------------------------------------------
+
+
+class BudgetPlan(Base):
+    __tablename__ = "budget_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    reference: Mapped[str] = mapped_column(String, index=True)
+    file_id: Mapped[int | None] = mapped_column(ForeignKey("files.id"))
+    year1: Mapped[int] = mapped_column(Integer, nullable=False)
+    year2: Mapped[int] = mapped_column(Integer, nullable=False)
+    kapitel_count: Mapped[int] = mapped_column(Integer, default=0)
+    item_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    items: Mapped[list[BudgetItem]] = relationship(back_populates="plan")
+
+
+class BudgetItem(Base):
+    __tablename__ = "budget_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("budget_plans.id"), index=True)
+    kapitel: Mapped[str] = mapped_column(String(4), nullable=False, index=True)
+    titel: Mapped[str] = mapped_column(String(5), nullable=False, index=True)
+    funktion: Mapped[str] = mapped_column(String(3), default="")
+    bezeichnung: Mapped[str] = mapped_column(String, nullable=False)
+    section: Mapped[str] = mapped_column(String(10), default="")
+    kennbuchstabe: Mapped[str] = mapped_column(String(3), default="")
+    ansatz_year1: Mapped[float | None] = mapped_column()
+    ansatz_year2: Mapped[float | None] = mapped_column()
+    ansatz_prev: Mapped[float | None] = mapped_column()
+    ist_prev: Mapped[float | None] = mapped_column()
+    page: Mapped[int] = mapped_column(Integer, default=0)
+    erlaeuterung: Mapped[str] = mapped_column(Text, default="")
+
+    plan: Mapped[BudgetPlan] = relationship(back_populates="items")
+
+    __table_args__ = (
+        Index("ix_budget_items_kapitel_titel", "kapitel", "titel"),
+    )
+
+
 class CrawlLog(Base):
     __tablename__ = "crawl_log"
 
