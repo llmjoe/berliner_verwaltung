@@ -39,7 +39,7 @@ async def cmd_download_pdfs(args: argparse.Namespace) -> None:
     from berliner_verwaltung.ingestion.pdf.downloader import PdfDownloader
 
     async with async_session_factory() as session:
-        async with PdfDownloader(session) as downloader:
+        async with PdfDownloader(session, legislative_term=args.term) as downloader:
             stats = await downloader.download_batch(limit=args.limit)
             print(
                 f"Download: {stats['downloaded']} new, "
@@ -53,7 +53,7 @@ async def cmd_extract_text(args: argparse.Namespace) -> None:
     from berliner_verwaltung.ingestion.pdf.extractor import PdfExtractor
 
     async with async_session_factory() as session:
-        extractor = PdfExtractor(session)
+        extractor = PdfExtractor(session, legislative_term=args.term)
         stats = await extractor.extract_batch(limit=args.limit)
         await session.commit()
         print(
@@ -104,9 +104,11 @@ def main() -> None:
 
     dl_parser = subparsers.add_parser("download-pdfs", help="Download PDF files from OParl")
     dl_parser.add_argument("-n", "--limit", type=int, default=100)
+    dl_parser.add_argument("-t", "--term", default=None, help="Legislative term filter (e.g. VI)")
 
     ex_parser = subparsers.add_parser("extract-text", help="Extract text from downloaded PDFs")
     ex_parser.add_argument("-n", "--limit", type=int, default=100)
+    ex_parser.add_argument("-t", "--term", default=None, help="Legislative term filter (e.g. VI)")
 
     ix_parser = subparsers.add_parser("index-search", help="Build full-text search index")
     ix_parser.add_argument("-n", "--limit", type=int, default=500)

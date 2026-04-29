@@ -13,7 +13,7 @@ import pdfplumber
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from berliner_verwaltung.db.models import File
+from berliner_verwaltung.db.models import File, Paper
 
 logger = logging.getLogger(__name__)
 
@@ -54,18 +54,28 @@ def extract_text_from_pdf(pdf_path: Path) -> tuple[str, dict]:
 
 
 class PdfExtractor:
-    def __init__(self, session: AsyncSession, pdf_dir: Path = Path("data/pdfs")) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        pdf_dir: Path = Path("data/pdfs"),
+        legislative_term: str | None = None,
+    ) -> None:
         self.session = session
         self.pdf_dir = pdf_dir
+        self.legislative_term = legislative_term
         self.stats = {"extracted": 0, "empty": 0, "needs_ocr": 0, "errors": 0, "skipped": 0}
 
     async def get_files_needing_extraction(self, limit: int = 100) -> list[File]:
-        result = await self.session.execute(
+        query = (
             select(File)
             .where(File.mime_type == "application/pdf")
             .where(File.text.is_(None))
-            .limit(limit)
         )
+        if self.legislative_term:
+            query = query.join(Paper, File.paper_id == Paper.id).where(
+                Paper.reference.like(f"%/{self.legislative_term}")
+            )
+        result = await self.session.execute(query.limit(limit))
         return list(result.scalars().all())
 
     def _pdf_path(self, file_id: int) -> Path:

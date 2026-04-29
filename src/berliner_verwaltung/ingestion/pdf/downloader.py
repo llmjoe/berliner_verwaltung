@@ -13,7 +13,7 @@ import httpx
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from berliner_verwaltung.db.models import File
+from berliner_verwaltung.db.models import File, Paper
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +31,13 @@ class PdfDownloader:
         output_dir: Path = Path("data/pdfs"),
         timeout: float = 60.0,
         max_size_mb: float = 50.0,
+        legislative_term: str | None = None,
     ) -> None:
         self.session = session
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.max_size = int(max_size_mb * 1024 * 1024)
+        self.legislative_term = legislative_term
         self._client = httpx.AsyncClient(
             timeout=timeout,
             headers={"User-Agent": USER_AGENT},
@@ -56,13 +58,17 @@ class PdfDownloader:
         return self.output_dir / f"{file_id}.pdf"
 
     async def get_pending_files(self, limit: int = 100) -> list[File]:
-        result = await self.session.execute(
+        query = (
             select(File)
             .where(File.mime_type == "application/pdf")
             .where(File.text.is_(None))
             .where(File.download_url.isnot(None) | File.access_url.isnot(None))
-            .limit(limit)
         )
+        if self.legislative_term:
+            query = query.join(Paper, File.paper_id == Paper.id).where(
+                Paper.reference.like(f"%/{self.legislative_term}")
+            )
+        result = await self.session.execute(query.limit(limit))
         return list(result.scalars().all())
 
     async def download_one(self, file: File) -> Path | None:

@@ -1,6 +1,8 @@
 {
   "permissions": {
+    "defaultMode": "dontAsk",
     "allow": [
+      "Bash",
       "Read",
       "Write",
       "Edit",
@@ -10,54 +12,14 @@
       "TodoWrite",
       "WebFetch",
       "WebSearch",
-      "Bash(git status *)",
-      "Bash(git log *)",
-      "Bash(git diff *)",
-      "Bash(git add *)",
-      "Bash(git branch *)",
-      "Bash(git show *)",
-      "Bash(git stash *)",
-      "Bash(git rev-parse *)",
-      "Bash(git remote -v)",
-      "Bash(python *)",
-      "Bash(python3 *)",
-      "Bash(pytest *)",
-      "Bash(ruff *)",
-      "Bash(mypy *)",
-      "Bash(pip install *)",
-      "Bash(pip list *)",
-      "Bash(pip show *)",
-      "Bash(uv *)",
-      "Bash(prefect *)",
-      "Bash(alembic *)",
-      "Bash(ls *)",
-      "Bash(cat *)",
-      "Bash(head *)",
-      "Bash(tail *)",
-      "Bash(find *)",
-      "Bash(mkdir *)",
-      "Bash(touch *)",
-      "Bash(cp *)",
-      "Bash(echo *)",
-      "Bash(wc *)",
-      "Bash(sort *)",
-      "Bash(tree *)",
-      "Bash(which *)",
-      "Bash(pwd)",
-      "Bash(env)",
-      "Bash(date)"
+      "NotebookEdit"
     ],
     "deny": [
-      "Bash(git push --force *)",
-      "Bash(git reset --hard *)",
-      "Bash(git checkout -- *)",
-      "Bash(git clean -f *)",
-      "Bash(git branch -D *)",
       "Bash(rm -rf *)",
       "Bash(rm -r *)",
-      "Bash(*DROP TABLE*)",
-      "Bash(*DROP DATABASE*)",
-      "Bash(*TRUNCATE*)"
+      "Bash(rm *)",
+      "Bash(unlink *)",
+      "Bash(shred *)"
     ]
   }
 }
