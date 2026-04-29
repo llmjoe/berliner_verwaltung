@@ -24,6 +24,12 @@ USER_AGENT = (
     "Mozilla/5.0 compatible)"
 )
 
+FHK_PLZS = {
+    "10243", "10245", "10247", "10249",
+    "10961", "10963", "10965", "10967", "10969",
+    "10997", "10999",
+}
+
 
 def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
@@ -48,7 +54,7 @@ def _parse_listing_page(html: str) -> list[dict]:
             if tid:
                 item["source_id"] = f"berlin-{tid.group(1)}"
 
-        dts = re.findall(r"<dt>(.*?)</dt>\s*<dd>(.*?)</dd>", article, re.DOTALL)
+        dts = re.findall(r"<dt[^>]*>(.*?)</dt>\s*<dd[^>]*>(.*?)</dd>", article, re.DOTALL)
         for dt, dd in dts:
             key = _clean(re.sub(r"<[^>]+>", "", dt)).lower()
             val = _clean(re.sub(r"<[^>]+>", "", dd))
@@ -66,6 +72,17 @@ def _parse_listing_page(html: str) -> list[dict]:
                 item["reference"] = val
             elif "leistungsart" in key or "auftragsart" in key:
                 item["contract_type"] = val
+
+        # Extract "Online seit" date from footer
+        online_match = re.search(r"Online seit:\s*(\d{2}\.\d{2}\.\d{4})", article)
+        if online_match:
+            item["online_date"] = online_match.group(1)
+
+        # Detect FHK by PLZ in location
+        location = item.get("location", "")
+        plz_match = re.search(r"(\d{5})", location) if location else None
+        item["plz"] = plz_match.group(1) if plz_match else None
+        item["is_fhk"] = item["plz"] in FHK_PLZS if item["plz"] else False
 
         if item.get("title"):
             results.append(item)
@@ -113,14 +130,12 @@ class VergabeScraper:
         import contextlib
         import datetime as dt
 
-        deadline = None
-        if item.get("deadline"):
+        def _parse_de_date(s: str | None) -> dt.date | None:
+            if not s:
+                return None
             with contextlib.suppress(ValueError):
-                deadline = dt.datetime.strptime(item["deadline"], "%d.%m.%Y").date()
-
-        is_fhk = "friedrichshain" in (
-            item.get("contracting_authority", "") + item.get("location", "")
-        ).lower()
+                return dt.datetime.strptime(s, "%d.%m.%Y").date()
+            return None
 
         tender = Tender(
             source="berlin_vergabeplattform",
@@ -129,13 +144,14 @@ class VergabeScraper:
             contracting_authority=item.get("contracting_authority"),
             tender_type=item.get("contract_type"),
             procedure_type=item.get("procedure_type"),
-            deadline_date=deadline,
-            publication_date=dt.date.today(),
+            deadline_date=_parse_de_date(item.get("deadline")),
+            publication_date=_parse_de_date(item.get("online_date")) or dt.date.today(),
             url=item.get("url"),
             data={
                 "location": item.get("location"),
+                "plz": item.get("plz"),
                 "reference": item.get("reference"),
-                "is_fhk": is_fhk,
+                "is_fhk": item.get("is_fhk", False),
             },
         )
         self.session.add(tender)
