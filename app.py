@@ -12,6 +12,8 @@ from sqlalchemy import func, select, text
 
 from berliner_verwaltung.db.connection import async_session_factory
 from berliner_verwaltung.db.models import (
+    BudgetItem,
+    BudgetPlan,
     Meeting,
     Organization,
     Paper,
@@ -97,6 +99,65 @@ async def get_paper_types() -> list[str]:
         return [row[0] for row in result.all()]
 
 
+async def get_budget_plans() -> list[dict]:
+    async with async_session_factory() as session:
+        result = await session.execute(
+            select(BudgetPlan).order_by(BudgetPlan.year1.desc())
+        )
+        return [
+            {"id": p.id, "reference": p.reference, "year1": p.year1, "year2": p.year2,
+             "item_count": p.item_count}
+            for p in result.scalars().all()
+        ]
+
+
+async def search_budget(
+    query: str = "",
+    kapitel: str = "",
+    plan_id: int | None = None,
+    section: str = "",
+    limit: int = 100,
+) -> list[dict]:
+    async with async_session_factory() as session:
+        stmt = select(BudgetItem, BudgetPlan.year1, BudgetPlan.year2).join(
+            BudgetPlan, BudgetItem.plan_id == BudgetPlan.id
+        )
+        if plan_id:
+            stmt = stmt.where(BudgetItem.plan_id == plan_id)
+        if kapitel:
+            stmt = stmt.where(BudgetItem.kapitel == kapitel)
+        if section and section != "Alle":
+            stmt = stmt.where(BudgetItem.section == section)
+        if query:
+            stmt = stmt.where(BudgetItem.bezeichnung.ilike(f"%{query}%"))
+        stmt = stmt.order_by(BudgetItem.ansatz_year1.desc().nullslast()).limit(limit)
+        result = await session.execute(stmt)
+        return [
+            {
+                "kapitel": r[0].kapitel,
+                "titel": r[0].titel,
+                "bezeichnung": r[0].bezeichnung,
+                "section": r[0].section,
+                "ansatz_year1": r[0].ansatz_year1,
+                "ansatz_year2": r[0].ansatz_year2,
+                "year1": r[1],
+                "year2": r[2],
+            }
+            for r in result.all()
+        ]
+
+
+async def get_kapitel_list(plan_id: int) -> list[str]:
+    async with async_session_factory() as session:
+        result = await session.execute(
+            select(BudgetItem.kapitel)
+            .where(BudgetItem.plan_id == plan_id)
+            .distinct()
+            .order_by(BudgetItem.kapitel)
+        )
+        return [row[0] for row in result.all()]
+
+
 async def get_recent_meetings(limit: int = 10) -> list[dict]:
     async with async_session_factory() as session:
         result = await session.execute(
@@ -146,8 +207,10 @@ with st.sidebar:
     st.metric("Personen", f"{stats['Personen']:,}")
     st.metric("Organisationen", f"{stats['Organisationen']:,}")
 
-# Search
-tab_search, tab_meetings = st.tabs(["Drucksachen-Suche", "Letzte Sitzungen"])
+# Tabs
+tab_search, tab_budget, tab_meetings = st.tabs([
+    "Drucksachen-Suche", "Haushalt", "Letzte Sitzungen"
+])
 
 with tab_search:
     query = st.text_input(
@@ -181,6 +244,62 @@ with tab_search:
             st.divider()
     else:
         st.info("Suchbegriff eingeben oder Filter setzen.")
+
+with tab_budget:
+    plans = run_async(get_budget_plans())
+    if plans:
+        plan_options = {
+            f"{p['year1']}/{p['year2']} ({p['item_count']} Posten)": p["id"]
+            for p in plans
+        }
+        selected_plan_label = st.selectbox("Haushaltsplan", list(plan_options.keys()))
+        selected_plan_id = plan_options[selected_plan_label]
+
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            kapitel_list = run_async(get_kapitel_list(selected_plan_id))
+            selected_kapitel = st.selectbox("Kapitel", [""] + kapitel_list)
+        with col_b:
+            selected_section = st.selectbox("Typ", ["Alle", "Einnahmen", "Ausgaben"])
+        with col_c:
+            budget_query = st.text_input("Suche in Bezeichnung", key="budget_search")
+
+        results = run_async(search_budget(
+            query=budget_query,
+            kapitel=selected_kapitel,
+            plan_id=selected_plan_id,
+            section=selected_section,
+        ))
+        st.info(f"{len(results)} Posten")
+
+        if results:
+            import pandas as pd
+            df = pd.DataFrame(results)
+            df["ansatz_year1"] = df["ansatz_year1"].apply(
+                lambda x: f"{x:,.0f}" if x is not None else "—"
+            )
+            df["ansatz_year2"] = df["ansatz_year2"].apply(
+                lambda x: f"{x:,.0f}" if x is not None else "—"
+            )
+            year1 = results[0]["year1"]
+            year2 = results[0]["year2"]
+            st.dataframe(
+                df[["kapitel", "titel", "bezeichnung", "section",
+                    "ansatz_year1", "ansatz_year2"]].rename(
+                    columns={
+                        "kapitel": "Kapitel",
+                        "titel": "Titel",
+                        "bezeichnung": "Bezeichnung",
+                        "section": "Typ",
+                        "ansatz_year1": f"Ansatz {year1}",
+                        "ansatz_year2": f"Ansatz {year2}",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+    else:
+        st.info("Noch keine Haushaltsdaten geladen. Starte: bv load-budgets")
 
 with tab_meetings:
     meetings = run_async(get_recent_meetings(20))
