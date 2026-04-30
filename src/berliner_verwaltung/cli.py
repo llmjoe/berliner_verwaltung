@@ -248,6 +248,15 @@ async def cmd_generate_dossiers(args: argparse.Namespace) -> None:
             print(f"          {d.summary[:80]}...")
 
 
+async def cmd_build_site(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.publish.site_generator import generate_site
+
+    count = generate_site()
+    print(f"Generated {count} pages in public/")
+    if count > 0:
+        print("Serve with: python -m http.server -d public 8080")
+
+
 async def cmd_scrape_tenders(args: argparse.Namespace) -> None:
     from berliner_verwaltung.db.connection import async_session_factory
     from berliner_verwaltung.ingestion.vergabe.scraper import VergabeScraper
@@ -399,6 +408,7 @@ def main() -> None:
     an_parser = subparsers.add_parser("analyze", help="Run pattern detection and trend analysis")
     an_parser.add_argument("-n", "--limit", type=int, default=20)
 
+    subparsers.add_parser("build-site", help="Generate static HTML site from dossiers")
     subparsers.add_parser("stats", help="Show database statistics")
 
     args = parser.parse_args()
@@ -417,6 +427,7 @@ def main() -> None:
         "crawl-pardok": cmd_crawl_pardok,
         "scrape-tenders": cmd_scrape_tenders,
         "dossiers": cmd_generate_dossiers,
+        "build-site": cmd_build_site,
         "analyze": cmd_analyze,
         "stats": cmd_stats,
     }

@@ -30,6 +30,8 @@ htmlcov/
 *~
 .DS_Store
 
+public/
+
 data/raw/
 data/cache/
 data/*.xml

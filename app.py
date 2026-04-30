@@ -257,9 +257,9 @@ with st.sidebar:
     st.metric("Organisationen", f"{stats['Organisationen']:,}")
 
 # Tabs
-tab_search, tab_budget, tab_pardok, tab_analysis, tab_meetings = st.tabs([
+tab_search, tab_budget, tab_pardok, tab_analysis, tab_dossiers, tab_meetings = st.tabs([
     "Drucksachen-Suche", "Haushalt", "Abgeordnetenhaus", "Analyse",
-    "Letzte Sitzungen",
+    "Dossiers", "Letzte Sitzungen",
 ])
 
 with tab_search:
@@ -470,6 +470,74 @@ with tab_analysis:
             for t in budget.kapitel_trends
         ])
         st.bar_chart(kap_df.set_index("Kapitel")["real_pct"])
+
+with tab_dossiers:
+    import json as _json
+    from pathlib import Path as _Path
+
+    dossier_dir = _Path("data/dossiers")
+    skeleton_dir = _Path("data/skeletons")
+
+    if dossier_dir.exists():
+        index_path = dossier_dir / "index.json"
+        if index_path.exists():
+            dossier_index = _json.loads(index_path.read_text())
+            st.subheader(f"Recherche-Dossiers ({len(dossier_index)})")
+
+            for entry in dossier_index:
+                dossier_path = dossier_dir / f"{entry['id']}.json"
+                if not dossier_path.exists():
+                    continue
+                dossier = _json.loads(dossier_path.read_text())
+
+                priority_colors = {
+                    "high": "red", "medium": "orange", "low": "blue"
+                }
+                color = priority_colors.get(dossier["priority"], "gray")
+
+                with st.expander(
+                    f":{color}[{dossier['priority'].upper()}] "
+                    f"{dossier['headline']}"
+                ):
+                    st.markdown(f"**{dossier['summary']}**")
+
+                    st.markdown("**Befunde:**")
+                    for f in dossier["key_findings"]:
+                        st.markdown(f"- {f}")
+
+                    if dossier.get("context"):
+                        st.markdown(f"**Kontext:** {dossier['context']}")
+
+                    st.markdown("**Offene Fragen:**")
+                    for q in dossier["open_questions"]:
+                        st.markdown(f"- {q}")
+
+                    st.markdown("**Alternative Erklaerungen:**")
+                    for a in dossier["alternative_explanations"]:
+                        st.markdown(f"- {a}")
+
+                    if dossier.get("related_papers"):
+                        st.markdown("**Verwandte BVV-Drucksachen:**")
+                        for p in dossier["related_papers"][:5]:
+                            st.caption(
+                                f"[{p.get('reference', '?')}] "
+                                f"{p.get('name', '?')[:60]}"
+                            )
+
+                    if dossier.get("related_pardok"):
+                        st.markdown("**Verwandte AGH-Dokumente:**")
+                        for p in dossier["related_pardok"][:3]:
+                            st.caption(
+                                f"[{p.get('dok_nr', '?')}] "
+                                f"{p.get('titel', '?')[:60]}"
+                            )
+
+                    st.caption(
+                        f"Methodik: {dossier.get('methodology_notes', '')}"
+                    )
+                    st.caption(f"Quellen: {', '.join(dossier.get('sources', []))}")
+    else:
+        st.info("Keine Dossiers vorhanden. Starte: bv dossiers")
 
 with tab_meetings:
     meetings = run_async(get_recent_meetings(20))
