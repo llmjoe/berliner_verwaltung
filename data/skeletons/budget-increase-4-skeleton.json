@@ -1,0 +1,59 @@
+{
+  "dossier_id": "budget-increase-4",
+  "working_title": "Anstieg: 282 Z Leistungen nach dem 4. Kapitel SGB XII für Personen, d",
+  "sections": [
+    {
+      "heading": "Was zeigen die Daten",
+      "content_notes": "Anstieg um +84.1% (23,424,000 -> 43,112,000 EUR); Inflationsbereinigt: +62.7%; Kapitel: 3911, Titel: 68115",
+      "data_references": [
+        {
+          "year": 2022,
+          "amount": 23424000.0
+        },
+        {
+          "year": 2026,
+          "amount": 43112000.0
+        },
+        {
+          "change_pct": 84.05054644808743
+        }
+      ],
+      "status": "draft_notes"
+    },
+    {
+      "heading": "Kontext und Hintergrund",
+      "content_notes": "Recherche noetig",
+      "data_references": [],
+      "status": "needs_research"
+    },
+    {
+      "heading": "Offene Fragen",
+      "content_notes": "Was hat den Anstieg verursacht?; Gibt es korrespondierende BVV-Beschluesse?; Wie entwickelt sich der Posten im Vergleich zu anderen Bezirken?",
+      "data_references": [],
+      "status": "needs_research"
+    },
+    {
+      "heading": "Methodik und Limitationen",
+      "content_notes": "Vergleich Ansatz Haushaltsjahr 1 zwischen aeltestem und neuestem Doppelhaushalt. Inflationsbereinigung mit kumulierten Jahresraten.",
+      "data_references": [],
+      "status": "draft_notes"
+    }
+  ],
+  "suggested_visualizations": [
+    {
+      "type": "bar_chart",
+      "description": "Vergleich 2022 vs ?",
+      "data_needed": "Ansaetze aus Haushaltsplaenen"
+    }
+  ],
+  "research_todos": [
+    "Bezirksamt um Stellungnahme bitten",
+    "Vergleich mit anderen Bezirken recherchieren",
+    "Betroffene Akteure identifizieren und kontaktieren"
+  ],
+  "limitations": [
+    "Datenquelle: Bezirkshaushaltsplaene (Soll, nicht Ist)",
+    "Inflationsbereinigung mit geschaetzten Jahresraten",
+    "Nur Ansaetze verglichen, keine Nachtraege oder Haushaltssperren"
+  ]
+}

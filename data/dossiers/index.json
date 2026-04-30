@@ -1,0 +1,32 @@
+[
+  {
+    "id": "budget-increase-1",
+    "headline": "Anstieg: Zuweisungen für Ausgaben (ohne Investitionen)",
+    "priority": "low",
+    "pattern_type": "budget_increase"
+  },
+  {
+    "id": "budget-increase-2",
+    "headline": "Anstieg: 282 E04 Anteil des Bundes an der Grundsicherung im Alter und",
+    "priority": "low",
+    "pattern_type": "budget_increase"
+  },
+  {
+    "id": "budget-increase-3",
+    "headline": "Anstieg: Zuweisungen für Investitionen",
+    "priority": "medium",
+    "pattern_type": "budget_increase"
+  },
+  {
+    "id": "budget-increase-4",
+    "headline": "Anstieg: 282 Z Leistungen nach dem 4. Kapitel SGB XII für Personen, d",
+    "priority": "medium",
+    "pattern_type": "budget_increase"
+  },
+  {
+    "id": "budget-increase-5",
+    "headline": "Anstieg: 283 T Eingliederungshilfe nach dem SGB IX für Menschen mit B",
+    "priority": "low",
+    "pattern_type": "budget_increase"
+  }
+]

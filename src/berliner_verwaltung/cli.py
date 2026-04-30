@@ -220,6 +220,34 @@ async def cmd_crawl_pardok(args: argparse.Namespace) -> None:
         print(f"  davon FHK-relevant: {fhk_count}")
 
 
+async def cmd_generate_dossiers(args: argparse.Namespace) -> None:
+    from berliner_verwaltung.db.connection import async_session_factory
+    from berliner_verwaltung.llm.client import get_llm_client
+    from berliner_verwaltung.research.dossier import (
+        generate_budget_dossiers,
+        save_dossiers,
+    )
+    from berliner_verwaltung.research.skeleton import generate_skeleton, save_skeletons
+
+    llm = get_llm_client(args.provider, model=args.model) if args.llm else None
+
+    async with async_session_factory() as session:
+        dossiers = await generate_budget_dossiers(session, llm=llm, limit=args.limit)
+        save_dossiers(dossiers)
+        print(f"Generated {len(dossiers)} dossiers")
+
+        skeletons = []
+        for d in dossiers:
+            s = await generate_skeleton(d, llm=llm)
+            skeletons.append(s)
+        save_skeletons(skeletons)
+        print(f"Generated {len(skeletons)} article skeletons")
+
+        for d in dossiers:
+            print(f"\n  [{d.priority:6s}] {d.headline}")
+            print(f"          {d.summary[:80]}...")
+
+
 async def cmd_scrape_tenders(args: argparse.Namespace) -> None:
     from berliner_verwaltung.db.connection import async_session_factory
     from berliner_verwaltung.ingestion.vergabe.scraper import VergabeScraper
@@ -362,6 +390,12 @@ def main() -> None:
     vg_parser = subparsers.add_parser("scrape-tenders", help="Scrape Vergabeplattform Berlin")
     vg_parser.add_argument("--pages", type=int, default=33, help="Max pages to scrape")
 
+    ds_parser = subparsers.add_parser("dossiers", help="Generate Recherche-Dossiers + Skelette")
+    ds_parser.add_argument("-n", "--limit", type=int, default=5)
+    ds_parser.add_argument("--llm", action="store_true", help="Use LLM for enrichment")
+    ds_parser.add_argument("--provider", default="ollama", help="LLM provider")
+    ds_parser.add_argument("--model", default=None, help="LLM model override")
+
     an_parser = subparsers.add_parser("analyze", help="Run pattern detection and trend analysis")
     an_parser.add_argument("-n", "--limit", type=int, default=20)
 
@@ -382,6 +416,7 @@ def main() -> None:
         "extract-recipients": cmd_extract_recipients,
         "crawl-pardok": cmd_crawl_pardok,
         "scrape-tenders": cmd_scrape_tenders,
+        "dossiers": cmd_generate_dossiers,
         "analyze": cmd_analyze,
         "stats": cmd_stats,
     }

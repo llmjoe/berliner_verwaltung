@@ -1,0 +1,81 @@
+{
+  "id": "budget-increase-3",
+  "pattern_type": "budget_increase",
+  "headline": "Anstieg: Zuweisungen für Investitionen",
+  "summary": "Budgetposten 4500/38530 (Zuweisungen für Investitionen) stieg von 13,918,000 EUR (2022) auf 35,265,000 EUR (2026), eine Steigerung von +153.4% nominal (+123.9% inflationsbereinigt).",
+  "key_findings": [
+    "Anstieg um +153.4% (13,918,000 -> 35,265,000 EUR)",
+    "Inflationsbereinigt: +123.9%",
+    "Kapitel: 4500, Titel: 38530"
+  ],
+  "context": "",
+  "open_questions": [
+    "Was hat den Anstieg verursacht?",
+    "Gibt es korrespondierende BVV-Beschluesse?",
+    "Wie entwickelt sich der Posten im Vergleich zu anderen Bezirken?"
+  ],
+  "alternative_explanations": [
+    "Inflation und allgemeine Kostensteigerung",
+    "Gesetzliche Pflichtaufgaben mit steigenden Fallzahlen",
+    "Einmaleffekte oder Nachholbedarf"
+  ],
+  "methodology_notes": "Vergleich Ansatz Haushaltsjahr 1 zwischen aeltestem und neuestem Doppelhaushalt. Inflationsbereinigung mit kumulierten Jahresraten.",
+  "priority": "medium",
+  "data_points": [
+    {
+      "year": 2022,
+      "amount": 13918000.0
+    },
+    {
+      "year": 2026,
+      "amount": 35265000.0
+    },
+    {
+      "change_pct": 153.37692197154763
+    },
+    {
+      "change_real_pct": 123.92168987039192
+    }
+  ],
+  "related_papers": [
+    {
+      "reference": "DS/0344/VI",
+      "name": "Investitionen im Bereich Schule"
+    },
+    {
+      "reference": "DS/0317/VI",
+      "name": "Berichte an den Ausschuss für Personal, Haushalt, Investitionen, Rechnungsprüfung und Wirtschaftsförderung (PHIRW)"
+    },
+    {
+      "reference": "DS/1176/VI",
+      "name": "Förderantrag für den Projektaufruf für Investitionen in nationale Projekte des Städtebaus Konzepterstellung für den Geschichts- und Lernort Kreuzberg GLOX im Fördergebiet Rathausblock im Programm Lebendige Zentren und Quartiere"
+    },
+    {
+      "reference": "DS/1980/VI",
+      "name": "Aufteilung von Infrastrukturinvestitionen aus dem Sondervermögen des Bundes"
+    },
+    {
+      "reference": "DS/1987/VI",
+      "name": "Prioritäten richtig setzen: Keine Olympia-Bewerbung - Investitionen sofort in den Breitensport und die Schulsanierung lenken"
+    }
+  ],
+  "related_pardok": [
+    {
+      "dok_nr": "19/79",
+      "titel": "13 Milliarden Investitionen durch Berlins landeseigene Unternehmen bis 2030"
+    },
+    {
+      "dok_nr": "19/63",
+      "titel": "Investitionen in Umwelt- und Klimaschutz – Ziele und Vorhaben des Senats"
+    },
+    {
+      "dok_nr": "19/63",
+      "titel": "Klimapakt und nachhaltige Mobilitätsinvestitionen in Berlin – Fortschritt bei der Elektrifizierung der Busflotte, Ausbau der Betriebshof Infrastruktur und zentrale Prioritäten für die nächsten Jahre"
+    }
+  ],
+  "sources": [
+    "Bezirkshaushaltsplan 2022/2023",
+    "Bezirkshaushaltsplan 2026/2027"
+  ],
+  "created_at": "2026-04-30T06:35:44.002676+00:00"
+}

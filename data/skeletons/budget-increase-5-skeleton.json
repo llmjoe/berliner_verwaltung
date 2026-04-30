@@ -1,0 +1,59 @@
+{
+  "dossier_id": "budget-increase-5",
+  "working_title": "Anstieg: 283 T Eingliederungshilfe nach dem SGB IX für Menschen mit B",
+  "sections": [
+    {
+      "heading": "Was zeigen die Daten",
+      "content_notes": "Anstieg um +29.0% (58,000,000 -> 74,815,000 EUR); Inflationsbereinigt: +14.0%; Kapitel: 3915, Titel: 67133",
+      "data_references": [
+        {
+          "year": 2022,
+          "amount": 58000000.0
+        },
+        {
+          "year": 2026,
+          "amount": 74815000.0
+        },
+        {
+          "change_pct": 28.99137931034483
+        }
+      ],
+      "status": "draft_notes"
+    },
+    {
+      "heading": "Kontext und Hintergrund",
+      "content_notes": "Recherche noetig",
+      "data_references": [],
+      "status": "needs_research"
+    },
+    {
+      "heading": "Offene Fragen",
+      "content_notes": "Was hat den Anstieg verursacht?; Gibt es korrespondierende BVV-Beschluesse?; Wie entwickelt sich der Posten im Vergleich zu anderen Bezirken?",
+      "data_references": [],
+      "status": "needs_research"
+    },
+    {
+      "heading": "Methodik und Limitationen",
+      "content_notes": "Vergleich Ansatz Haushaltsjahr 1 zwischen aeltestem und neuestem Doppelhaushalt. Inflationsbereinigung mit kumulierten Jahresraten.",
+      "data_references": [],
+      "status": "draft_notes"
+    }
+  ],
+  "suggested_visualizations": [
+    {
+      "type": "bar_chart",
+      "description": "Vergleich 2022 vs ?",
+      "data_needed": "Ansaetze aus Haushaltsplaenen"
+    }
+  ],
+  "research_todos": [
+    "Bezirksamt um Stellungnahme bitten",
+    "Vergleich mit anderen Bezirken recherchieren",
+    "Betroffene Akteure identifizieren und kontaktieren"
+  ],
+  "limitations": [
+    "Datenquelle: Bezirkshaushaltsplaene (Soll, nicht Ist)",
+    "Inflationsbereinigung mit geschaetzten Jahresraten",
+    "Nur Ansaetze verglichen, keine Nachtraege oder Haushaltssperren"
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "id": "budget-increase-5",
+  "pattern_type": "budget_increase",
+  "headline": "Anstieg: 283 T Eingliederungshilfe nach dem SGB IX für Menschen mit B",
+  "summary": "Budgetposten 3915/67133 (283 T Eingliederungshilfe nach dem SGB IX für Menschen mit Behinderun-) stieg von 58,000,000 EUR (2022) auf 74,815,000 EUR (2026), eine Steigerung von +29.0% nominal (+14.0% inflationsbereinigt).",
+  "key_findings": [
+    "Anstieg um +29.0% (58,000,000 -> 74,815,000 EUR)",
+    "Inflationsbereinigt: +14.0%",
+    "Kapitel: 3915, Titel: 67133"
+  ],
+  "context": "",
+  "open_questions": [
+    "Was hat den Anstieg verursacht?",
+    "Gibt es korrespondierende BVV-Beschluesse?",
+    "Wie entwickelt sich der Posten im Vergleich zu anderen Bezirken?"
+  ],
+  "alternative_explanations": [
+    "Inflation und allgemeine Kostensteigerung",
+    "Gesetzliche Pflichtaufgaben mit steigenden Fallzahlen",
+    "Einmaleffekte oder Nachholbedarf"
+  ],
+  "methodology_notes": "Vergleich Ansatz Haushaltsjahr 1 zwischen aeltestem und neuestem Doppelhaushalt. Inflationsbereinigung mit kumulierten Jahresraten.",
+  "priority": "low",
+  "data_points": [
+    {
+      "year": 2022,
+      "amount": 58000000.0
+    },
+    {
+      "year": 2026,
+      "amount": 74815000.0
+    },
+    {
+      "change_pct": 28.99137931034483
+    },
+    {
+      "change_real_pct": 13.996047505575834
+    }
+  ],
+  "related_papers": [
+    {
+      "reference": "DS/0060/VI",
+      "name": "Anerkennung von Zertifikaten im Berufsbildungsbereich der Werkstätten für Menschen mit Behinderung durch das Jobcenter und der IHK"
+    },
+    {
+      "reference": "DS/0684/VI",
+      "name": "Parkplätze für Menschen mit Behinderung im Bezirk"
+    },
+    {
+      "reference": "DS/0797/VI",
+      "name": "Menschenwürdige Behandlung ermöglichen - unhaltbare Zustände in der Psychiatrie des Klinikums am Urban beenden"
+    },
+    {
+      "reference": "DS/0031/VI",
+      "name": "Toiletten zur kostenlosen Nutzung für obdach- und wohnungslose Menschen | Bezug DS/2090/V"
+    },
+    {
+      "reference": "DS/1169/VI",
+      "name": "Kochen mit und für Menschen ohne Obdach"
+    }
+  ],
+  "related_pardok": [
+    {
+      "dok_nr": "19/3181",
+      "titel": "Fachlichkeit vor Sparpolitik: Keine Leistungskürzungen bei Jugend- und Eingliederungshilfe für Kinder, Jugendliche und Menschen mit Behinderungen"
+    },
+    {
+      "dok_nr": "19/3183",
+      "titel": "Widerstand organisieren– Drastische Kürzungspläne der Bundesregierung gefährden Leistungen für Menschen mit Behinderungen, Kinder und Familien"
+    },
+    {
+      "dok_nr": "19/3106",
+      "titel": "Gesetz zur Abschaffung der Widerspruchsbeiräte in Angelegenheiten der Sozialhilfe und der Eingliederungshilfe"
+    }
+  ],
+  "sources": [
+    "Bezirkshaushaltsplan 2022/2023",
+    "Bezirkshaushaltsplan 2026/2027"
+  ],
+  "created_at": "2026-04-30T06:35:44.124956+00:00"
+}

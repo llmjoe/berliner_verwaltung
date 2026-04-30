@@ -1,0 +1,77 @@
+{
+  "id": "budget-increase-1",
+  "pattern_type": "budget_increase",
+  "headline": "Anstieg: Zuweisungen für Ausgaben (ohne Investitionen)",
+  "summary": "Budgetposten 4500/38630 (Zuweisungen für Ausgaben (ohne Investitionen)) stieg von 595,213,000 EUR (2022) auf 696,190,000 EUR (2026), eine Steigerung von +17.0% nominal (+3.4% inflationsbereinigt).",
+  "key_findings": [
+    "Anstieg um +17.0% (595,213,000 -> 696,190,000 EUR)",
+    "Inflationsbereinigt: +3.4%",
+    "Kapitel: 4500, Titel: 38630"
+  ],
+  "context": "",
+  "open_questions": [
+    "Was hat den Anstieg verursacht?",
+    "Gibt es korrespondierende BVV-Beschluesse?",
+    "Wie entwickelt sich der Posten im Vergleich zu anderen Bezirken?"
+  ],
+  "alternative_explanations": [
+    "Inflation und allgemeine Kostensteigerung",
+    "Gesetzliche Pflichtaufgaben mit steigenden Fallzahlen",
+    "Einmaleffekte oder Nachholbedarf"
+  ],
+  "methodology_notes": "Vergleich Ansatz Haushaltsjahr 1 zwischen aeltestem und neuestem Doppelhaushalt. Inflationsbereinigung mit kumulierten Jahresraten.",
+  "priority": "low",
+  "data_points": [
+    {
+      "year": 2022,
+      "amount": 595213000.0
+    },
+    {
+      "year": 2026,
+      "amount": 696190000.0
+    },
+    {
+      "change_pct": 16.9648512381282
+    },
+    {
+      "change_real_pct": 3.3676111497704677
+    }
+  ],
+  "related_papers": [
+    {
+      "reference": "DS/1467/VI",
+      "name": "Ausgaben für Schlüsselverträge"
+    },
+    {
+      "reference": "DS/0077-10/VI",
+      "name": "Entwurf des Bezirkshaushaltsplans für die Haushaltsjahre 2022 und 2023 hier: Mehr Ausgaben für Straßenreinigung!"
+    },
+    {
+      "reference": "DS/0830-40/VI",
+      "name": "Entwurf des Bezirkshaushaltsplans für die Haushaltsjahre 2024 und 2025\nHier: Sperrvermerk Pauschale Mehrausgaben"
+    },
+    {
+      "reference": "DS/0830-44/VI",
+      "name": "Entwurf des Bezirkshaushaltsplans für die Haushaltsjahre 2024 und 2025\nHier: Sperrvermerk Pauschale Mehrausgaben zur Finanzierung von Haushaltsresten"
+    }
+  ],
+  "related_pardok": [
+    {
+      "dok_nr": "19/3022",
+      "titel": "Entlastung wegen der Einnahmen und Ausgaben des Rechnungshofs von Berlin im Haushaltsjahr 2024"
+    },
+    {
+      "dok_nr": "19/25112",
+      "titel": "Flucht- und Integrationsausgaben im Haushaltsjahr 2025"
+    },
+    {
+      "dok_nr": "19/24783",
+      "titel": "\"Explosion der Sozialausgaben\" - Konsequenzen aus der Haushaltsanalyse des Finanzsenators für die Berliner Sozialpolitik"
+    }
+  ],
+  "sources": [
+    "Bezirkshaushaltsplan 2022/2023",
+    "Bezirkshaushaltsplan 2026/2027"
+  ],
+  "created_at": "2026-04-30T06:35:43.895750+00:00"
+}

@@ -1,0 +1,73 @@
+{
+  "id": "budget-increase-4",
+  "pattern_type": "budget_increase",
+  "headline": "Anstieg: 282 Z Leistungen nach dem 4. Kapitel SGB XII für Personen, d",
+  "summary": "Budgetposten 3911/68115 (282 Z Leistungen nach dem 4. Kapitel SGB XII für Personen, die die Al-) stieg von 23,424,000 EUR (2022) auf 43,112,000 EUR (2026), eine Steigerung von +84.1% nominal (+62.7% inflationsbereinigt).",
+  "key_findings": [
+    "Anstieg um +84.1% (23,424,000 -> 43,112,000 EUR)",
+    "Inflationsbereinigt: +62.7%",
+    "Kapitel: 3911, Titel: 68115"
+  ],
+  "context": "",
+  "open_questions": [
+    "Was hat den Anstieg verursacht?",
+    "Gibt es korrespondierende BVV-Beschluesse?",
+    "Wie entwickelt sich der Posten im Vergleich zu anderen Bezirken?"
+  ],
+  "alternative_explanations": [
+    "Inflation und allgemeine Kostensteigerung",
+    "Gesetzliche Pflichtaufgaben mit steigenden Fallzahlen",
+    "Einmaleffekte oder Nachholbedarf"
+  ],
+  "methodology_notes": "Vergleich Ansatz Haushaltsjahr 1 zwischen aeltestem und neuestem Doppelhaushalt. Inflationsbereinigung mit kumulierten Jahresraten.",
+  "priority": "medium",
+  "data_points": [
+    {
+      "year": 2022,
+      "amount": 23424000.0
+    },
+    {
+      "year": 2026,
+      "amount": 43112000.0
+    },
+    {
+      "change_pct": 84.05054644808743
+    },
+    {
+      "change_real_pct": 62.6545506257776
+    }
+  ],
+  "related_papers": [
+    {
+      "reference": "DS/0077-57/VI",
+      "name": "Bezirkshaushaltsplan für die Haushaltsjahre 2022 und 2023 hier Kapitel 3300 Titel 54053 Änderung der Erläuterung"
+    },
+    {
+      "reference": "DS/0830-52/VI",
+      "name": "Entwurf des Bezirkshaushaltsplans für die Haushaltsjahre 2024 und 2025\nHier: „3306 | 54010 Sperrvermerk: Konzept zur Zentralisierung der Sicherheitsdienstleistungen“"
+    },
+    {
+      "reference": "DS/1699/VI",
+      "name": "Einsatz des \"Mobilen Bürgeramts\" für soziale Leistungen wie Wohnberechtigungsschein (WBS) und Wohngeld ausweiten"
+    }
+  ],
+  "related_pardok": [
+    {
+      "dok_nr": "19/3183",
+      "titel": "Widerstand organisieren– Drastische Kürzungspläne der Bundesregierung gefährden Leistungen für Menschen mit Behinderungen, Kinder und Familien"
+    },
+    {
+      "dok_nr": "19/70",
+      "titel": "Digitalisierung von Sozialleistungen - Sieben auf einen Streich - Ein Vorbild für die Berliner Verwaltung?"
+    },
+    {
+      "dok_nr": "19/25551",
+      "titel": "Von der Schule in den Wartesaal? - Umsetzung von Leistungen des Teilhabefachdienstes beim Übergang Schule - Beruf im Land Berlin"
+    }
+  ],
+  "sources": [
+    "Bezirkshaushaltsplan 2022/2023",
+    "Bezirkshaushaltsplan 2026/2027"
+  ],
+  "created_at": "2026-04-30T06:35:44.062157+00:00"
+}

@@ -1,0 +1,59 @@
+{
+  "dossier_id": "budget-increase-2",
+  "working_title": "Anstieg: 282 E04 Anteil des Bundes an der Grundsicherung im Alter und",
+  "sections": [
+    {
+      "heading": "Was zeigen die Daten",
+      "content_notes": "Anstieg um +48.9% (53,500,000 -> 79,673,000 EUR); Inflationsbereinigt: +31.6%; Kapitel: 3911, Titel: 23133",
+      "data_references": [
+        {
+          "year": 2022,
+          "amount": 53500000.0
+        },
+        {
+          "year": 2026,
+          "amount": 79673000.0
+        },
+        {
+          "change_pct": 48.921495327102804
+        }
+      ],
+      "status": "draft_notes"
+    },
+    {
+      "heading": "Kontext und Hintergrund",
+      "content_notes": "Recherche noetig",
+      "data_references": [],
+      "status": "needs_research"
+    },
+    {
+      "heading": "Offene Fragen",
+      "content_notes": "Was hat den Anstieg verursacht?; Gibt es korrespondierende BVV-Beschluesse?; Wie entwickelt sich der Posten im Vergleich zu anderen Bezirken?",
+      "data_references": [],
+      "status": "needs_research"
+    },
+    {
+      "heading": "Methodik und Limitationen",
+      "content_notes": "Vergleich Ansatz Haushaltsjahr 1 zwischen aeltestem und neuestem Doppelhaushalt. Inflationsbereinigung mit kumulierten Jahresraten.",
+      "data_references": [],
+      "status": "draft_notes"
+    }
+  ],
+  "suggested_visualizations": [
+    {
+      "type": "bar_chart",
+      "description": "Vergleich 2022 vs ?",
+      "data_needed": "Ansaetze aus Haushaltsplaenen"
+    }
+  ],
+  "research_todos": [
+    "Bezirksamt um Stellungnahme bitten",
+    "Vergleich mit anderen Bezirken recherchieren",
+    "Betroffene Akteure identifizieren und kontaktieren"
+  ],
+  "limitations": [
+    "Datenquelle: Bezirkshaushaltsplaene (Soll, nicht Ist)",
+    "Inflationsbereinigung mit geschaetzten Jahresraten",
+    "Nur Ansaetze verglichen, keine Nachtraege oder Haushaltssperren"
+  ]
+}
